@@ -1,0 +1,25 @@
+name: Deploy Project to Our Server
+
+on:
+  push:
+    branches:
+      - mamon
+
+jobs:
+  FTP-Deploy-Action:
+    name: FTP Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ftp.softvencefsd.xyz
+          username: weslleybrito@weslley-brito.softvencefsd.xyz
+          password: "Srpi#UFfxB2%Oy#P"
