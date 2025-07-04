@@ -5,12 +5,9 @@ namespace App\Http\Controllers\API\Auth;
 use Exception;
 use Carbon\Carbon;
 use App\Models\User;
-use App\Models\UserAddress;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Models\UserPersonalDetail;
-use App\Models\UserFinancialDetail;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -56,7 +53,7 @@ class AuthApiController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'password' => 'required|string|min:8',
-            'user_type' => 'required|in:doctor,patient',
+            'user_type' => 'required|in:doctor,patient,admin',
         ]);
 
         if ($validator->fails()) {
@@ -199,7 +196,7 @@ class AuthApiController extends Controller
         }
     }
     //forgotPassword
-    public function forgotPasswordApi(Request $request)
+    public function forgotPasswordApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email'
@@ -228,11 +225,11 @@ class AuthApiController extends Controller
         }
     }
     //verifyOtpApi
-    public function verifyOtpApi(Request $request)
+    public function verifyOtpApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
-            'otp' => 'required|digits:6',
+            'otp' => 'required|digits:4',
         ]);
         try {
             $user = User::where('email', $request->email)->first();
@@ -267,7 +264,7 @@ class AuthApiController extends Controller
         }
     }
     //resetPasswordApi
-    public function resetPasswordApi(Request $request)
+    public function resetPasswordApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -302,7 +299,7 @@ class AuthApiController extends Controller
         }
     }
     //logoutApi
-    public function logoutApi(Request $request)
+    public function logoutApi(Request $request): \Illuminate\Http\JsonResponse
     {
         try {
             // Revoke the user's token

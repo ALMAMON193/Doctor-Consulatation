@@ -42,6 +42,8 @@ return new class extends Migration
             $table->string('video_path')->nullable();
             $table->enum('verification_status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('verification_rejection_reason')->nullable();
+            $table->boolean('is_active')->default(false);
+            $table->timestamp('last_seen')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });

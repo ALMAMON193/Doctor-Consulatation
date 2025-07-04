@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -14,6 +14,7 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Admin
         DB::table('users')->insert([
             'name' => 'Admin',
             'email' => 'admin@admin.com',
@@ -27,21 +28,25 @@ class UserSeeder extends Seeder
             'created_at' => now(),
             'updated_at' => now(),
         ]);
-        //doctor
-        DB::table('users')->insert([
-            'name' => 'Doctor',
-            'email' => 'doctor@doctor.com',
-            'password' => Hash::make('12345678'),
-            'phone_number' => '1234567892',
-            'user_type' => 'doctor',
-            'terms_and_conditions' => true,
-            'email_verified_at' => now(),
-            'is_verified' => true,
-            'verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        //patient
+
+        // 20 Doctors
+        for ($i = 1; $i <= 20; $i++) {
+            DB::table('users')->insert([
+                'name' => "Doctor $i",
+                'email' => "doctor@doctor$i.com",
+                'password' => Hash::make('12345678'),
+                'phone_number' => '12345678' . str_pad($i, 2, '0', STR_PAD_LEFT),
+                'user_type' => 'doctor',
+                'is_verified' => true,
+                'terms_and_conditions' => true,
+                'email_verified_at' => now(),
+                'verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // Patient
         DB::table('users')->insert([
             'name' => 'Patient',
             'email' => 'patient@patient.com',

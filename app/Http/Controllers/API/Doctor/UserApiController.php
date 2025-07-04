@@ -8,6 +8,7 @@ use App\Models\UserAddress;
 use App\Traits\ApiResponse;
 use App\Models\DoctorProfile;
 use App\Models\UserPersonalDetail;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -22,9 +23,9 @@ class UserApiController extends Controller
      * Store personal and account information for the authenticated doctor.
      *
      * @param CreateProfileRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function createProfile(CreateProfileRequest $request)
+    public function createProfile(CreateProfileRequest $request): JsonResponse
     {
         $user = auth('sanctum')->user();
 
@@ -32,17 +33,14 @@ class UserApiController extends Controller
         if (!$user) {
             return $this->sendError('User not authenticated', [], 401);
         }
-
         // Start transaction to ensure all or nothing operation
         DB::beginTransaction();
-
         try {
             // Save or update personal details
             UserPersonalDetail::updateOrCreate(
                 ['user_id' => $user->id],
                 $request->only('date_of_birth', 'cpf', 'gender', 'account_type')
             );
-
             // Save or update address and financial info
             UserAddress::updateOrCreate(
                 ['user_id' => $user->id],
@@ -53,7 +51,6 @@ class UserApiController extends Controller
                     'business_name'
                 )
             );
-
             // Upload and update avatar image if provided
             if ($request->hasFile('avatar')) {
                 $path = Helper::fileUpload($request->file('avatar'), 'doctor/avatar');
@@ -90,9 +87,9 @@ class UserApiController extends Controller
      * Create or update doctor medical info for verification.
      *
      * @param MedicalInfoVerifyRequest $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function medicalInfoVerify(MedicalInfoVerifyRequest $request)
+    public function medicalInfoVerify(MedicalInfoVerifyRequest $request): JsonResponse
     {
         $user = auth('sanctum')->user();
 
@@ -130,9 +127,9 @@ class UserApiController extends Controller
     /**
      * Check doctor verification status and identify missing fields.
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
-    public function checkVerificationStatus()
+    public function checkVerificationStatus(): JsonResponse
     {
         $user = auth('sanctum')->user();
 

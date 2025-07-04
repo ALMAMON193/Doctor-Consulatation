@@ -59,18 +59,19 @@ class User extends Authenticatable
     }
 
 
-    public function personalDetails()
+    public function personalDetails(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(UserPersonalDetail::class);
     }
 
-    public function address()
+    public function address(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(UserAddress::class);
     }
 
-    public function doctorProfile()
+    public function doctorProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(DoctorProfile::class);
     }
+
 }

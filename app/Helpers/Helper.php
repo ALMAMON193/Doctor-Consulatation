@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 
@@ -20,10 +21,14 @@ class Helper
     }
 
     //! File or Image Delete
-    public static function fileDelete(string $path): void
+    public static function fileDelete(?string $path): void
     {
-        if (file_exists($path)) {
-            unlink($path);
+        if (!$path) {
+            return; // nothing to delete
+        }
+        // "public" must match the disk used in fileUpload()
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 }
