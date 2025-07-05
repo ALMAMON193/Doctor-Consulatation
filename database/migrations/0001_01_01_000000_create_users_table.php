@@ -26,8 +26,8 @@ return new class extends Migration
             $table->timestamp('otp_expires_at')->nullable();
 
             // Password reset
-            $table->string('reset_password_token')->nullable()->index();
-            $table->timestamp('reset_password_token_expires_at')->nullable();
+            $table->string('reset_password_token', 80)->nullable();
+            $table->dateTime('reset_password_token_expire_at')->nullable();
 
             // Account delete token
             $table->string('delete_token')->nullable()->index();

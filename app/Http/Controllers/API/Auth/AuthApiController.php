@@ -17,6 +17,7 @@ use App\Http\Requests\DoctorRegisterRequest;
 class AuthApiController extends Controller
 {
     use ApiResponse;
+
     //register api
     public function registerApi(DoctorRegisterRequest $request): \Illuminate\Http\JsonResponse
     {
@@ -48,6 +49,7 @@ class AuthApiController extends Controller
             return $this->sendError('Registration failed: ' . $e->getMessage(), [], 500);
         }
     }
+
     public function loginApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -67,7 +69,7 @@ class AuthApiController extends Controller
                 return $this->sendError('User Not Found', ['error' => 'User Not Found'], 401);
             }
 
-            if (!Hash::check((string) $request->password, (string) $user->password)) {
+            if (!Hash::check((string)$request->password, (string)$user->password)) {
                 return $this->sendError('Invalid password', ['error' => 'Invalid Password or Email'], 401);
             }
 
@@ -152,7 +154,7 @@ class AuthApiController extends Controller
                 'email' => $user->email,
                 'user_type' => $user->user_type ?? 'N/A',
                 'is_verified' => $user->is_otp_verified,
-                'verified_at' =>$user->verified_at,
+                'verified_at' => $user->verified_at,
             ];
 
             return $this->sendResponse($success, 'Email verified successfully', $token);
@@ -161,6 +163,7 @@ class AuthApiController extends Controller
             return $this->sendError('An error occurred during verification', ['error' => 'Please try again later'], 500);
         }
     }
+
     //resend otp
     public function resendOtpApi(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -195,6 +198,7 @@ class AuthApiController extends Controller
             return $this->sendError('An error occurred during OTP resend', ['error' => 'Please try again later'], 500);
         }
     }
+
     //forgotPassword
     public function forgotPasswordApi(Request $request): \Illuminate\Http\JsonResponse
     {
@@ -224,19 +228,22 @@ class AuthApiController extends Controller
             return $this->sendError('Failed to send OTP', ['error' => 'Please try again later'], 500);
         }
     }
-    //verifyOtpApi
+
+   // OTP Verification API
     public function verifyOtpApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
             'otp' => 'required|digits:4',
         ]);
+
         try {
             $user = User::where('email', $request->email)->first();
 
             if (!$user) {
                 return $this->sendError('User Not Found', ['error' => 'User Not Found'], 401);
             }
+
             if (Carbon::parse($user->otp_expires_at)->isPast()) {
                 return $this->sendError('OTP Expired', ['error' => 'OTP Expired'], 401);
             }
@@ -244,13 +251,17 @@ class AuthApiController extends Controller
             if ($user->otp !== $request->otp) {
                 return $this->sendError('Invalid OTP', ['error' => 'Invalid OTP'], 401);
             }
-            $token = Str::random(20);
+
+            // OTP matched, generate a reset token
+            $token = Str::random(40);
+
             $user->update([
                 'otp' => null,
                 'otp_expires_at' => null,
                 'reset_password_token' => $token,
-                'reset_password_token_expire_at' => Carbon::now()->addHour(),
+                'reset_password_token_expire_at' => now()->addHour(),
             ]);
+
             $success = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -264,7 +275,8 @@ class AuthApiController extends Controller
             return $this->sendError('Failed to verify OTP', ['error' => 'Please try again later'], 500);
         }
     }
-    //resetPasswordApi
+
+    // Reset Password API
     public function resetPasswordApi(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
@@ -280,11 +292,12 @@ class AuthApiController extends Controller
                 return $this->sendError('User Not Found', ['error' => 'User Not Found'], 401);
             }
 
-            $tokenValid = $user->reset_password_token === $request->token &&
-                $user->reset_password_token_expire_at >= Carbon::now();
+            $tokenValid = hash_equals($user->reset_password_token, $request->token)
+                && $user->reset_password_token_expire_at !== null
+                && Carbon::parse($user->reset_password_token_expire_at)->isFuture();
 
             if (!$tokenValid) {
-                return $this->sendError('Invalid Token', ['error' => 'Invalid Token'], 401);
+                return $this->sendError('Invalid Token', ['error' => 'Invalid or expired token'], 401);
             }
 
             $user->update([
@@ -292,13 +305,14 @@ class AuthApiController extends Controller
                 'reset_password_token' => null,
                 'reset_password_token_expire_at' => null,
             ]);
-            $message = 'Password reset successfully. Please login with your new password.';
-            return $this->sendResponse([], $message);
+
+            return $this->sendResponse([], 'Password reset successfully. Please login with your new password.');
         } catch (Exception $e) {
             Log::error('Failed to reset password: ' . $e->getMessage());
             return $this->sendError('Failed to reset password', ['error' => 'Please try again later'], 500);
         }
     }
+
     //logoutApi
     public function logoutApi(Request $request): \Illuminate\Http\JsonResponse
     {
