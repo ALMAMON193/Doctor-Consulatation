@@ -254,6 +254,10 @@ class AuthApiController extends Controller
 
             // OTP matched, generate a reset token
             $token = Str::random(40);
+            Log::info('🔐 Generated reset token', [
+                'email' => $user->email,
+                'token' => $token,
+            ]);
 
             $user->update([
                 'otp' => null,
@@ -261,6 +265,7 @@ class AuthApiController extends Controller
                 'reset_password_token' => $token,
                 'reset_password_token_expire_at' => now()->addHour(),
             ]);
+
 
             $success = [
                 'id' => $user->id,
@@ -304,6 +309,12 @@ class AuthApiController extends Controller
                 'password' => Hash::make($request->password),
                 'reset_password_token' => null,
                 'reset_password_token_expire_at' => null,
+            ]);
+            Log::info('🔁 Reset Token Compare', [
+                'request_token' => trim($request->token),
+                'db_token' => $user->reset_password_token,
+                'expires_at' => $user->reset_password_token_expire_at,
+                'now' => now(),
             ]);
 
             return $this->sendResponse([], 'Password reset successfully. Please login with your new password.');

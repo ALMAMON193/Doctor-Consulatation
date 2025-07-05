@@ -27,7 +27,7 @@ class User extends Authenticatable
         'is_otp_verified',
         'otp_expires_at',
         'reset_password_token',
-        'reset_password_token_expires_at',
+        'reset_password_token_expire_at',
         'delete_token',
         'delete_token_expires_at',
         'avatar',
