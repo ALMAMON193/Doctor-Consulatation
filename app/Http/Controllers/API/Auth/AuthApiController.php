@@ -244,7 +244,7 @@ class AuthApiController extends Controller
             if ($user->otp !== $request->otp) {
                 return $this->sendError('Invalid OTP', ['error' => 'Invalid OTP'], 401);
             }
-            $token = Str::random(60);
+            $token = Str::random(20);
             $user->update([
                 'otp' => null,
                 'otp_expires_at' => null,
@@ -255,9 +255,10 @@ class AuthApiController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'token' => $token,
             ];
 
-            return $this->sendResponse($success, 'OTP verified successfully. Please reset your password.', $token);
+            return $this->sendResponse($success, 'OTP verified successfully. Please reset your password.');
         } catch (Exception $e) {
             Log::error('Failed to verify OTP: ' . $e->getMessage());
             return $this->sendError('Failed to verify OTP', ['error' => 'Please try again later'], 500);
