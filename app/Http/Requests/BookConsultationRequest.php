@@ -11,7 +11,6 @@ class BookConsultationRequest extends FormRequest
         return [
             'patient_id'         => ['required', 'exists:patients,id'],
             'doctor_profile_id'  => ['required', 'exists:doctor_profiles,id'],
-            'fee_amount'         => ['required', 'numeric'],
             'coupon_code'        => ['nullable', 'string'],
             'complaint'          => ['nullable', 'string'],
             'pain_level'         => ['nullable', 'integer', 'between:0,5'],

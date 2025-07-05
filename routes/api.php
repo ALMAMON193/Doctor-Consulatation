@@ -82,7 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     | Patient Routes
     |--------------------------------------------------------------------------
     */
-    Route::prefix('patient')->middleware('patient')->group(function () {
+    Route::prefix('patient')->middleware('patient','auth:sanctum')->group(function () {
         Route::post('create-profile', [PatientProfileApiController::class, 'createProfile']);
         Route::get('profile/details', [PatientProfileApiController::class, 'profileDetails']);
         Route::get('accounts', [PatientProfileApiController::class, 'accountDetails']);
@@ -94,8 +94,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         //consultation pay
 
-        Route::post('/consultations', [ConsultationBookingController::class, 'create']);
-        Route::post('/payments/confirm', [ConsultationBookingController::class, 'confirmPayment']);
+        Route::post('/consultations', [ConsultationBookingController::class, 'book']);
         Route::post('/stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature');
     });
 
