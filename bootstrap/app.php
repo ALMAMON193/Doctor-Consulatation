@@ -18,9 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Register middleware aliases here
         $middleware->alias([
-            'doctor' => DoctorMiddleware::class,
-            'patient' => PatientMiddleware::class,
-            'admin' => AdminMiddleware::class,
+            'doctor'            => DoctorMiddleware::class,
+            'patient'           => PatientMiddleware::class,
+            'admin'             => AdminMiddleware::class,
+            'stripe.signature' => \App\Http\Middleware\VerifyStripeSignature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

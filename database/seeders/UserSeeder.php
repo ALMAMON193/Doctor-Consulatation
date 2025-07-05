@@ -33,7 +33,7 @@ class UserSeeder extends Seeder
         for ($i = 1; $i <= 20; $i++) {
             DB::table('users')->insert([
                 'name' => "Doctor $i",
-                'email' => "doctor@doctor$i.com",
+                'email' => "doctor$i@gmail.com",
                 'password' => Hash::make('12345678'),
                 'phone_number' => '12345678' . str_pad($i, 2, '0', STR_PAD_LEFT),
                 'user_type' => 'doctor',
@@ -46,19 +46,22 @@ class UserSeeder extends Seeder
             ]);
         }
 
-        // Patient
-        DB::table('users')->insert([
-            'name' => 'Patient',
-            'email' => 'patient@patient.com',
-            'password' => Hash::make('12345678'),
-            'phone_number' => '1234567893',
-            'user_type' => 'patient',
-            'is_verified' => true,
-            'terms_and_conditions' => true,
-            'email_verified_at' => now(),
-            'verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+
+        // 20 Doctors
+        for ($i = 1; $i <= 20; $i++) {
+            DB::table('users')->insert([
+                'name' => "Patient $i",
+                'email' => "patient$i@gmail.com",
+                'password' => Hash::make('12345678'),
+                'phone_number' => '1234567' . str_pad($i, 2, '0', STR_PAD_LEFT),
+                'user_type' => 'patient',
+                'is_verified' => true,
+                'terms_and_conditions' => true,
+                'email_verified_at' => now(),
+                'verified_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }

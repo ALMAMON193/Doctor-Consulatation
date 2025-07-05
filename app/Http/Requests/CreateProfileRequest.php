@@ -25,7 +25,7 @@ class CreateProfileRequest extends FormRequest
             'annual_income_for_company' => 'required|string',
             'company_telephone_number' => 'required|string',
             'business_name' => 'required|string',
-            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20048',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20048',
         ];
     }
 

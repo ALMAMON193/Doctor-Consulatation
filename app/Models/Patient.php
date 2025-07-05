@@ -24,6 +24,8 @@ class Patient extends Model
         'city',
         'state',
         'profile_photo',
+        'consulted',
+        'family_member_consulted',
         'verification_status',
         'verification_rejection_reason'
     ];
@@ -42,5 +44,9 @@ class Patient extends Model
     public function medicalRecords(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PatientMedicalRecord::class);
+    }
+    public function members(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PatientMember::class, 'patient_id');
     }
 }

@@ -43,7 +43,7 @@ class ProfileApiController extends Controller
             ? Carbon::parse($patient->date_of_birth)->format('Y-d-m')
             : null;
 
-        $response = [
+        $apiResponse = [
             'user_information' => [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -54,7 +54,6 @@ class ProfileApiController extends Controller
                 'cpf' => $patient->cpf,
                 'gender' => $patient->gender,
                 'mother_name' => $patient->mother_name,
-                'account_type' => $patient->account_type,
             ],
             'address_information' => [
                 'zipcode' => $patient->zipcode,
@@ -73,7 +72,7 @@ class ProfileApiController extends Controller
 
         ];
 
-        return $this->sendResponse($response, __('Profile details successfully'));
+        return $this->sendResponse($apiResponse, __('Profile details successfully'));
     }
 
     //profile create for patient

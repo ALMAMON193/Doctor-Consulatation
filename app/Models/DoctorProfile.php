@@ -23,6 +23,7 @@ class DoctorProfile extends Model
         'dv',
         'crm',
         'uf',
+        'consultation_fee',
         'monthly_income',
         'company_income',
         'company_phone',
@@ -40,6 +41,7 @@ class DoctorProfile extends Model
         'email',
         'phone_number',
         'video_path',
+        'profile_picture',
         'verification_status',
         'verification_rejection_reason'
     ];

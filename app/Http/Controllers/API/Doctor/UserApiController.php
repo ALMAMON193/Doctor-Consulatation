@@ -51,21 +51,28 @@ class UserApiController extends Controller
                     'business_name'
                 )
             );
-            // Upload and update avatar image if provided
-            if ($request->hasFile('avatar')) {
-                $path = Helper::fileUpload($request->file('avatar'), 'doctor/avatar');
-                $user->avatar = $path;
-                $user->save();
+            //  Upload profile_picture to doctor_profiles
+            $doctorProfileData = [];
+
+            if ($request->hasFile('profile_picture')) {
+                $profilePath = Helper::fileUpload($request->file('profile_picture'), 'doctor/profile_picture');
+                $doctorProfileData['profile_picture'] = $profilePath;
             }
 
-            // Commit transaction after successful operations
+            DoctorProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                $doctorProfileData
+            );
+
             DB::commit();
 
-            //create success response
+            //  Return success response
+            $personalData = $request->only('date_of_birth', 'cpf', 'gender', 'account_type');
+            $personalData['profile_picture'] = asset(optional($user->doctorProfile)->profile_picture ?? '');
+
             $apiResponse = [
                 'user_id'   => $user->id,
-                'avatar'    => asset($user->avatar ?? ''),
-                'personal'  => $request->only('date_of_birth', 'cpf', 'gender', 'account_type'),
+                'personal'  => $personalData,
                 'financial' => $request->only(
                     'monthly_income',
                     'annual_income_for_company',
@@ -79,7 +86,7 @@ class UserApiController extends Controller
             // Rollback on error
             DB::rollBack();
             Log::error('CreateProfile: ' . $e->getMessage());
-            return $this->sendError('Profile creation failed', [], 500);
+            return $this->sendError('Profile creation failed'.$e->getMessage(), [], 500);
         }
     }
 

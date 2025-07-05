@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('dv')->nullable();
             $table->string('crm')->unique()->nullable();
             $table->string('uf')->nullable();
+            $table->decimal('consultation_fee', 10, 2)->default(0);
             $table->decimal('monthly_income', 10, 2)->nullable();
             $table->decimal('company_income', 10, 2)->nullable();
             $table->string('company_phone')->nullable();
@@ -40,6 +41,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone_number')->nullable();
             $table->string('video_path')->nullable();
+            $table->string('profile_picture')->nullable();
             $table->enum('verification_status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->text('verification_rejection_reason')->nullable();
             $table->boolean('is_active')->default(false);

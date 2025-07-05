@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\Dashboard\Doctor\DoctorApiController;
 use App\Http\Controllers\API\Dashboard\Patient\PatientApiController;
+use App\Http\Controllers\API\Patient\ConsultationBookingController;
 use App\Http\Controllers\API\Patient\MedicalApiRecordController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -45,11 +46,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
   */
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('doctor-list', [DoctorApiController::class, 'doctorList']);
-        Route::get('doctor-detail/{id}', [DoctorApiController::class, 'doctorDetails']);
+        Route::get('doctor-details/{id}', [DoctorApiController::class, 'doctorDetails']);
 
     });
 
 
+    /*
+  |--------------------------------------------------------------------------
+  | Dashboard Patients Routes
+  |--------------------------------------------------------------------------
+  */
+    Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::get('patient-list', [PatientApiController::class, 'patientList']);
+        Route::get('patient-details/{id}', [PatientApiController::class, 'doctorDetails']);
+
+    });
     /*
     |--------------------------------------------------------------------------
     | Doctor Routes
@@ -79,6 +90,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('update/member/account/{id}', [PatientProfileApiController::class, 'updateMemberAccount']);
         Route::delete('delete/member/account/{id}', [PatientProfileApiController::class, 'deleteMemberAccount']);
         Route::post('update/profile/details', [PatientProfileApiController::class, 'updateProfileDetails']);
+
+
+        //consultation pay
+
+        Route::post('/consultations', [ConsultationBookingController::class, 'create']);
+        Route::post('/payments/confirm', [ConsultationBookingController::class, 'confirmPayment']);
+        Route::post('/stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature');
     });
 
     /*

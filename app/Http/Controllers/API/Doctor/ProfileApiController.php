@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DoctorEditRequest;
+use Throwable;
 
 class ProfileApiController extends Controller
 {
@@ -30,72 +31,81 @@ class ProfileApiController extends Controller
      */
     public function profileDetails(): JsonResponse
     {
-        // Ensure only authenticated doctors can view their profile
         $user = auth('sanctum')->user();
+
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can view their profile'), [], 403);
         }
 
-        // Load all profile data with null checks
-        $doctorProfile = DoctorProfile::where('user_id', $user->id)->first();
-        $personalDetails = UserPersonalDetail::where('user_id', $user->id)->first();
-        $userAddress = UserAddress::where('user_id', $user->id)->first();
+        // eager load
+        $user->loadMissing(['doctorProfile', 'personalDetail', 'address']);
 
         try {
             $apiResponse = [
                 'account_information' => [
-                    'user_id' => $user->id,
-                    'user_name' => $user->name,
-                    'email' => $user->email,
-                    'phone_number' => $user->phone_number ?? '',
-                    'avatar' => $user->avatar ? asset($user->avatar) : '',
+                    'user_id'        => $user->id,
+                    'user_name'      => $user->name,
+                    'email'          => $user->email,
+                    'phone_number'   => $user->phone_number ?? '',
+                    'profile_picture'=> optional($user->doctorProfile)->profile_picture
+                        ? asset($user->doctorProfile->profile_picture)
+                        : '',
                 ],
+
                 'personal_information' => [
-                    'date_of_birth' => $personalDetails ? $personalDetails->date_of_birth : null,
-                    'cpf' => $personalDetails ? $personalDetails->cpf : null,
-                    'gender' => $personalDetails ? $personalDetails->gender : null,
-                    'account_type' => $personalDetails ? $personalDetails->account_type : null,
+                    'date_of_birth' => optional($user->personalDetail)->date_of_birth,
+                    'cpf'           => optional($user->personalDetail)->cpf,
+                    'gender'        => optional($user->personalDetail)->gender,
+                    'account_type'  => optional($user->personalDetail)->account_type,
                 ],
+
                 'legal_information' => [
-                    'monthly_income' => $userAddress ? $userAddress->monthly_income : null,
-                    'annual_income_company' => $userAddress ? $userAddress->annual_income_for_company : null,
-                    'company_phone' => $userAddress ? $userAddress->company_telephone_number : null,
-                    'company_name' => $userAddress ? $userAddress->business_name : null,
+                    'monthly_income'           => optional($user->address)->monthly_income,
+                    'annual_income_company'    => optional($user->address)->annual_income_for_company,
+                    'company_phone'            => optional($user->address)->company_telephone_number,
+                    'company_name'             => optional($user->address)->business_name,
                 ],
+
                 'address_information' => [
-                    'zipcode' => $doctorProfile ? $doctorProfile->address_zipcode : null,
-                    'number' => $doctorProfile ? $doctorProfile->address_number : null,
-                    'street' => $doctorProfile ? $doctorProfile->address_street : null,
-                    'neighborhood' => $doctorProfile ? $doctorProfile->address_neighborhood : null,
-                    'complement' => $doctorProfile ? $doctorProfile->address_complement : null,
-                    'city' => $doctorProfile ? $doctorProfile->address_city : null,
-                    'state' => $doctorProfile ? $doctorProfile->address_state : null,
+                    'zipcode'      => optional($user->doctorProfile)->address_zipcode,
+                    'number'       => optional($user->doctorProfile)->address_number,
+                    'street'       => optional($user->doctorProfile)->address_street,
+                    'neighborhood' => optional($user->doctorProfile)->address_neighborhood,
+                    'complement'   => optional($user->doctorProfile)->address_complement,
+                    'city'         => optional($user->doctorProfile)->address_city,
+                    'state'        => optional($user->doctorProfile)->address_state,
                 ],
+
                 'medical_information' => [
-                    'crm' => $doctorProfile ? $doctorProfile->crm : null,
-                    'uf' => $doctorProfile ? $doctorProfile->uf : null,
-                    'specialization' => $doctorProfile ? $doctorProfile->specialization : null,
-                    'presentation_video' => $doctorProfile && $doctorProfile->video_path ? asset($doctorProfile->video_path) : null,
-                    'verification_status' => $doctorProfile ? $doctorProfile->verification_status : 'pending',
-                    'verification_rejection_reason' => $doctorProfile ? $doctorProfile->verification_rejection_reason : null,
+                    'crm'          => optional($user->doctorProfile)->crm,
+                    'uf'           => optional($user->doctorProfile)->uf,
+                    'specialization'=> optional($user->doctorProfile)->specialization,
+                    'presentation_video' =>
+                        optional($user->doctorProfile)->video_path
+                            ? asset($user->doctorProfile->video_path)
+                            : null,
+                    'verification_status' =>
+                        optional($user->doctorProfile)->verification_status ?? 'pending',
+                    'verification_rejection_reason' =>
+                        optional($user->doctorProfile)->verification_rejection_reason,
                 ],
+
                 'financial_information' => [
-                    'cpf_bank' => $doctorProfile ? $doctorProfile->cpf_bank : null,
-                    'bank_name' => $doctorProfile ? $doctorProfile->bank_name : null,
-                    'account_type' => $doctorProfile ? $doctorProfile->account_type : null,
-                    'account_number' => $doctorProfile ? $doctorProfile->account_number : null,
-                    'dv' => $doctorProfile ? $doctorProfile->dv : null,
+                    'cpf_bank'      => optional($user->doctorProfile)->cpf_bank,
+                    'bank_name'     => optional($user->doctorProfile)->bank_name,
+                    'account_type'  => optional($user->doctorProfile)->account_type,
+                    'account_number'=> optional($user->doctorProfile)->account_number,
+                    'dv'            => optional($user->doctorProfile)->dv,
                 ],
             ];
 
-            $message = __('Profile details retrieved successfully.');
-
-            return $this->sendResponse($apiResponse, $message);
-        } catch (Exception $e) {
+            return $this->sendResponse($apiResponse, __('Profile details retrieved successfully.'));
+        } catch (Throwable $e) {
             Log::error('Error retrieving profile details: ' . $e->getMessage());
             return $this->sendError(__('Sorry, something went wrong.'), [], 500);
         }
     }
+
 
     /**
      * Update basic user information and personal details.
