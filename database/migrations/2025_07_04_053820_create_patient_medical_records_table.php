@@ -19,6 +19,8 @@ return new class extends Migration
             $table->date('record_date')->nullable();
             $table->string('file_path')->nullable();
             $table->timestamps();
+            $table->foreign('patient_id')->references('id')->on('patients');
+            $table->foreign('patient_member_id')->references('id')->on('patient_members');
         });
     }
 

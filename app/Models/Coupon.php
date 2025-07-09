@@ -2,26 +2,35 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Coupon extends Model
 {
     protected $fillable = [
-        'code', 'discount_percentage', 'discount_amount', 'doctor_id', 'valid_from', 'valid_to',
-        'usage_limit', 'used_count', 'status'
+        'code',
+        'discount_percentage',
+        'discount_amount',
+        'doctor_profile_id',
+        'valid_from',
+        'valid_to',
+        'usage_limit',
+        'used_count',
+        'status',
     ];
 
     public function doctor()
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(DoctorProfile::class);
     }
 
-    public function couponUsers()
+    public function couponUsers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(CouponUser::class);
     }
 
-    public function isValid()
+    public function isValid(): bool
     {
         $now = now();
         return $this->status === 'active' &&
@@ -41,13 +50,13 @@ class Coupon extends Model
         return 0;
     }
 
-    public function scopeActive($query)
+    public function scopeActive(Builder $query): Builder
     {
-        $now = now();
         return $query->where('status', 'active')
-            ->whereDate('valid_from', '<=', $now)
-            ->whereDate('valid_to', '>=', $now)
+            ->whereDate('valid_from', '<=', Carbon::today())
+            ->whereDate('valid_to', '>=', Carbon::today())
             ->whereColumn('used_count', '<', 'usage_limit');
     }
+
 
 }
