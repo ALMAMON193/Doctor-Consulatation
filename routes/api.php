@@ -33,11 +33,9 @@ Route::prefix('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth:sanctum'])->group(function () {
-
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('auth/logout', [AuthApiController::class, 'logoutApi']);
+});
 
     /*
   |--------------------------------------------------------------------------
@@ -110,4 +108,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/delete/{id}', [MedicalApiRecordController::class, 'destroyMedicalRecord']);
     });
 
-});
+

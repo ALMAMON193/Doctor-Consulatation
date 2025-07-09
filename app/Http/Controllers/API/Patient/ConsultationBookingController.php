@@ -149,7 +149,6 @@ class ConsultationBookingController extends Controller
                     ->update(['payment_status' => 'paid']);   // add column if needed
             }
         }
-
         // Always respond 200
         return response()->json(['status' => 'ok']);
     }
