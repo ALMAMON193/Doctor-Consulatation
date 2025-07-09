@@ -17,6 +17,7 @@ class Consultation extends Model
     protected $fillable = [
         'patient_id',
         'doctor_profile_id',
+        'patient_member_id',
         'fee_amount',
         'coupon_code',
         'discount_amount',
@@ -41,5 +42,9 @@ class Consultation extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+    public function patientMember(): BelongsTo
+    {
+        return $this->belongsTo(PatientMember::class, 'patient_member_id');
     }
 }

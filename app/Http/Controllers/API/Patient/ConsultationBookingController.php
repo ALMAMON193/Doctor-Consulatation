@@ -4,7 +4,7 @@ namespace App\Http\Controllers\API\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
-use App\Models\{Consultation, DoctorProfile, Payment};
+use App\Models\{Consultation, Coupon, CouponUser, DoctorProfile, Payment};
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,22 +26,31 @@ class ConsultationBookingController extends Controller
 
     public function book(Request $request): JsonResponse
     {
-        // Validate input
         $validated = $request->validate([
-            'patient_id'        => 'required|exists:patients,id',
-            'doctor_profile_id' => 'required|exists:doctor_profiles,id',
-            'coupon_code'       => 'nullable|string',
-            'complaint'         => 'nullable|string|max:2000',
-            'pain_level'        => 'nullable|integer|between:0,10',
-            'consultation_date' => 'nullable|date',
-            'email'             => 'nullable|email',
+            'patient_id'         => 'nullable|exists:patients,id',
+            'patient_member_id'  => 'nullable|exists:patient_members,id',
+            'doctor_profile_id'  => 'required|exists:doctor_profiles,id',
+            'coupon_code'        => 'nullable|string',
+            'complaint'          => 'nullable|string|max:2000',
+            'pain_level'         => 'nullable|integer|between:0,10',
+            'consultation_date'  => 'nullable|date',
+            'email'              => 'nullable|email',
         ]);
 
-        // Get doctor profile
+        // Ensure either patient or member is present
+        if (empty($validated['patient_id']) && empty($validated['patient_member_id'])) {
+            return response()->json(['error' => 'Patient or Patient Member is required'], 422);
+        }
+
         $doctor = DoctorProfile::findOrFail($validated['doctor_profile_id']);
 
-        // Calculate fee & discount
-        $feeDetails = ConsultationService::calculateFee($doctor, $validated['coupon_code'] ?? null);
+        // Apply coupon and calculate fees
+        $feeDetails = ConsultationService::applyCoupon(
+            $doctor,
+            $validated['coupon_code'] ?? null,
+            $validated['patient_id'] ?? null,
+            $validated['patient_member_id'] ?? null
+        );
 
         if ($feeDetails['error']) {
             return response()->json(['error' => $feeDetails['error']], 422);
@@ -49,18 +58,19 @@ class ConsultationBookingController extends Controller
 
         // Create consultation record
         $consultation = Consultation::create([
-            'patient_id'        => $validated['patient_id'],
-            'doctor_profile_id' => $doctor->id,
-            'fee_amount'        => $feeDetails['fee'],
-            'coupon_code'       => $feeDetails['coupon_code'],
-            'discount_amount'   => $feeDetails['discount'],
-            'final_amount'      => $feeDetails['final'],
-            'complaint'         => $validated['complaint'] ?? null,
-            'pain_level'        => $validated['pain_level'] ?? 0,
-            'consultation_date' => $validated['consultation_date'] ?? now(),
+            'patient_id'         => $validated['patient_id'] ?? null,
+            'patient_member_id'  => $validated['patient_member_id'] ?? null,
+            'doctor_profile_id'  => $doctor->id,
+            'fee_amount'         => $feeDetails['fee'],
+            'discount_amount'    => $feeDetails['discount'],
+            'final_amount'       => $feeDetails['final'],
+            'coupon_code'        => $feeDetails['coupon_code'],
+            'complaint'          => $validated['complaint'] ?? null,
+            'pain_level'         => $validated['pain_level'] ?? 0,
+            'consultation_date'  => $validated['consultation_date'] ?? now(),
         ]);
 
-        // Create payment record
+        // Create payment record BEFORE Stripe session
         $payment = Payment::create([
             'consultation_id' => $consultation->id,
             'amount'          => $feeDetails['final'],
@@ -68,14 +78,14 @@ class ConsultationBookingController extends Controller
             'status'          => 'pending',
         ]);
 
-        // Prepare product name for Stripe
+        // Prepare product name
         $productName = 'Consultation';
-        if (!empty($feeDetails['message'])) {
+        if ($feeDetails['message']) {
             $productName .= " ({$feeDetails['message']})";
         }
 
         // Create Stripe checkout session
-        $session = Session::create([
+        $session = \Stripe\Checkout\Session::create([
             'payment_method_types' => ['card'],
             'line_items' => [[
                 'price_data' => [
@@ -97,7 +107,7 @@ class ConsultationBookingController extends Controller
             'customer_email' => $validated['email'] ?? null,
         ]);
 
-        // Update payment with Stripe session id
+        // Update payment with Stripe session ID
         $payment->update(['payment_intent_id' => $session->id]);
 
         return response()->json([
@@ -106,8 +116,6 @@ class ConsultationBookingController extends Controller
             'payment'      => $payment,
         ], 201);
     }
-
-
 
 
     public function handleWebhook(Request $request): JsonResponse

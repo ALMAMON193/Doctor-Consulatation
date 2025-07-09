@@ -80,10 +80,10 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::post('financial/update', [DoctorProfileApiController::class, 'financialUpdate']);
 
     //coupon route
-    Route::get('/coupons',[CouponApiController::class, 'index']);
-    Route::post('/coupons/create',[CouponApiController::class, 'store']);
-    Route::post('/coupons/update/{id}',[CouponApiController::class, 'update']);
-    Route::delete('/coupons/delete/{id}',[CouponApiController::class, 'destroy']);
+    Route::get('/coupons', [CouponApiController::class, 'index']);
+    Route::post('/coupons/create', [CouponApiController::class, 'store']);
+    Route::post('/coupons/update/{id}', [CouponApiController::class, 'update']);
+    Route::delete('/coupons/delete/{id}', [CouponApiController::class, 'destroy']);
 
 });
 
@@ -108,10 +108,10 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
 
     // Consultation booking and Stripe webhook
     Route::post('/consultations', [ConsultationBookingController::class, 'book']);
-    Route::get('/payment/success',[ConsultationBookingController::class,'success'])->name('payment.success');
-    Route::get('/payment/fail',[ConsultationBookingController::class,'fail'])->name('payment.fail');
     Route::post('/stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature');
 });
+Route::get('/payment/success', [ConsultationBookingController::class, 'success'])->name('payment.success');
+Route::get('/payment/fail', [ConsultationBookingController::class, 'fail'])->name('payment.fail');
 
 /*
 |--------------------------------------------------------------------------

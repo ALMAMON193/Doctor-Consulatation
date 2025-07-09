@@ -2,71 +2,96 @@
 
 namespace App\Services;
 
-use App\Models\Coupon;
-use App\Models\DoctorProfile;
+use App\Models\{Coupon, DoctorProfile, CouponUser};
 
 class ConsultationService
 {
     /**
-     * Calculate consultation fee applying coupon if valid.
+     * Apply coupon to a doctor's consultation fee for a patient or patient member.
      *
      * @param DoctorProfile $doctor
-     * @param string|null $couponCode
+     * @param string|null $code
+     * @param int|null $patientId
+     * @param int|null $memberId
      * @return array
      */
-    public static function calculateFee(DoctorProfile $doctor, ?string $couponCode): array
+    public static function applyCoupon(DoctorProfile $doctor, ?string $code, ?int $patientId = null, ?int $memberId = null): array
     {
         $fee = (float) $doctor->consultation_fee;
         $discount = 0;
-        $error = null;
         $message = null;
 
-        if ($couponCode) {
-            $coupon = Coupon::active()
-                ->where('code', $couponCode)
-                ->where(function ($q) use ($doctor) {
-                    // Coupon either global (null doctor) or for this doctor
-                    $q->whereNull('doctor_profile_id')
-                        ->orWhere('doctor_profile_id', $doctor->id);
-                })
-                ->first();
+        // No coupon code
+        if (!$code) {
+            return self::format($fee, 0, $fee);
+        }
 
-            if (!$coupon) {
-                return [
-                    'fee'         => $fee,
-                    'discount'    => 0,
-                    'final'       => $fee,
-                    'error'       => __('Invalid or expired coupon.'),
-                    'coupon_code' => null,
-                    'message'     => null,
-                ];
-            }
+        // Find active coupon matching code and doctor
+        $coupon = Coupon::active()
+            ->where('code', $code)
+            ->where(function ($query) use ($doctor) {
+                $query->whereNull('doctor_profile_id')
+                    ->orWhere('doctor_profile_id', $doctor->id);
+            })
+            ->first();
 
-            if ($coupon->discount_percentage > 0) {
-                $discount = round($fee * ($coupon->discount_percentage / 100), 2);
-                $message = "Discount: {$coupon->discount_percentage}% via {$coupon->code}";
-            } else {
-                // Fixed amount discount capped at fee
-                $discount = min($coupon->discount_amount, $fee);
-                $message = "Discount: \${$discount} via {$coupon->code}";
-            }
+        if (!$coupon) {
+            return self::format($fee, 0, $fee, __('Invalid or expired coupon.'));
+        }
 
-            // Increment usage count and update coupon status if limit reached
-            $coupon->increment('used_count');
-            if ($coupon->used_count >= $coupon->usage_limit) {
-                $coupon->update(['status' => 'used']);
-            }
+        // Check if coupon already used by patient or member
+        $used = CouponUser::where('coupon_id', $coupon->id)
+            ->where(function ($query) use ($patientId, $memberId) {
+                if ($patientId) {
+                    $query->where('patient_id', $patientId);
+                }
+                if ($memberId) {
+                    $query->orWhere('patient_member_id', $memberId);
+                }
+            })
+            ->exists();
+
+        if ($used) {
+            return self::format($fee, 0, $fee, __('You have already used this coupon.'));
+        }
+
+        // Calculate discount
+        if ($coupon->discount_percentage > 0) {
+            $discount = round($fee * $coupon->discount_percentage / 100, 2);
+            $message = "Discount: {$coupon->discount_percentage}% via {$coupon->code}";
+        } else {
+            $discount = min($coupon->discount_amount, $fee);
+            $message = "Discount: \${$discount} via {$coupon->code}";
+        }
+
+        // Store coupon usage
+        CouponUser::create([
+            'coupon_id' => $coupon->id,
+            'patient_id' => $patientId,
+            'patient_member_id' => $memberId,
+            'used_at' => now(),
+        ]);
+
+        // Update coupon usage count & status
+        $coupon->increment('used_count');
+        if ($coupon->used_count >= $coupon->usage_limit) {
+            $coupon->update(['status' => 'used']);
         }
 
         $final = max($fee - $discount, 0);
 
+        return self::format($fee, $discount, $final, null, $coupon->code, $message);
+    }
+
+    private static function format($fee, $discount, $final, $error = null, $code = null, $msg = null): array
+    {
         return [
-            'fee'         => $fee,
-            'discount'    => $discount,
-            'final'       => $final,
-            'error'       => $error,
-            'coupon_code' => $couponCode,
-            'message'     => $message,
+            'fee' => $fee,
+            'discount' => $discount,
+            'final' => $final,
+            'error' => $error,
+            'coupon_code' => $code,
+            'message' => $msg,
         ];
     }
 }
