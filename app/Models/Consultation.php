@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read Patient        $patient
  * @property-read DoctorProfile  $doctorProfile
  * @property-read Payment|null   $payment
+ * @method static create(array $array)
  */
 class Consultation extends Model
 {
@@ -25,6 +26,7 @@ class Consultation extends Model
         'complaint',
         'pain_level',
         'consultation_date',
+        'payment_status'
     ];
 
     /* Relationships ------------------------------------------------------- */

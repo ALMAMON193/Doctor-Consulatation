@@ -46,7 +46,7 @@ class DoctorProfile extends Model
         'verification_rejection_reason'
     ];
 
-    public function user()
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }

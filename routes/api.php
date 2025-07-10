@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\API\Doctor\CouponApiController;
+use App\Http\Controllers\API\Patient\ConsultationChatApiController;
+use App\Http\Controllers\API\Patient\RatingApiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\AuthApiController;
 use App\Http\Controllers\API\Dashboard\Doctor\DoctorApiController;
@@ -106,12 +108,30 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::post('update/member/account/{id}', [PatientProfileApiController::class, 'updateMemberAccount']);
     Route::delete('delete/member/account/{id}', [PatientProfileApiController::class, 'deleteMemberAccount']);
 
+    //Patient or patient member  add a rating
+//    Route::get('/consultation-ratting', [ConsultationBookingController::class, 'index']);
+    Route::post('/consultation-ratting', [RatingApiController::class, 'store']);
     // Consultation booking and Stripe webhook
     Route::post('/consultations', [ConsultationBookingController::class, 'book']);
     Route::post('/stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature');
 });
 Route::get('/payment/success', [ConsultationBookingController::class, 'success'])->name('payment.success');
 Route::get('/payment/fail', [ConsultationBookingController::class, 'fail'])->name('payment.fail');
+
+
+/*
+|--------------------------------------------------------------------------
+| Patient Routes
+|--------------------------------------------------------------------------
+| Routes available to authenticated patients for managing their profile,
+| members, and booking consultations.
+*/
+Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
+    //chat doctor patient and patient member
+    Route::get('participants',[ConsultationChatApiController::class,'getChatParticipantsInfo']);
+    Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']);
+
+});
 
 /*
 |--------------------------------------------------------------------------

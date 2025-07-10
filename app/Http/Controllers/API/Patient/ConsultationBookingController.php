@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\Patient;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PaymentSuccessResource;
 use App\Traits\ApiResponse;
 use App\Models\{Consultation, Coupon, CouponUser, DoctorProfile, Payment};
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class ConsultationBookingController extends Controller
             'pain_level'         => 'nullable|integer|between:0,10',
             'consultation_date'  => 'nullable|date',
             'email'              => 'nullable|email',
+            'payment_status'             => 'nullable|in:pending,paid,completed,cancelled',
         ]);
 
         // Ensure either patient or member is present
@@ -68,6 +70,7 @@ class ConsultationBookingController extends Controller
             'complaint'          => $validated['complaint'] ?? null,
             'pain_level'         => $validated['pain_level'] ?? 0,
             'consultation_date'  => $validated['consultation_date'] ?? now(),
+            'payment_status' => $validated['payment_status'] ?? 'pending',
         ]);
 
         // Create payment record BEFORE Stripe session
@@ -96,7 +99,7 @@ class ConsultationBookingController extends Controller
                 'quantity' => 1,
             ]],
             'mode'        => 'payment',
-            'success_url' => route('payment.success'),
+            'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url'  => route('payment.fail'),
             'metadata'    => [
                 'payment_id'      => $payment->id,
@@ -112,8 +115,6 @@ class ConsultationBookingController extends Controller
 
         return response()->json([
             'checkout_url' => $session->url,
-            'consultation' => $consultation,
-            'payment'      => $payment,
         ], 201);
     }
 
@@ -154,10 +155,47 @@ class ConsultationBookingController extends Controller
     }
 
     //payment success
-    public function success(): JsonResponse
+    public function success(Request $request): JsonResponse|PaymentSuccessResource
     {
-        return $this->sendResponse([], __('Payment successful'));
+        $sessionId = $request->query('session_id');
+
+        if (!$sessionId) {
+            // If you want to return JSON with error and not a resource, use a different approach
+            return response()->json([
+                'data' => [],
+                'message' => __('Payment successful, but session ID is missing')
+            ], 400);
+        }
+
+        $payment = Payment::where('payment_intent_id', $sessionId)->first();
+
+        if (!$payment) {
+            return response()->json([
+                'data' => [],
+                'message' => __('Payment not found')
+            ], 404);
+        }
+
+        $consultation = Consultation::with([
+            'doctorProfile.user',
+            'patient',
+            'patientMember',
+            'patientMember.patient',
+        ])->find($payment->consultation_id);
+
+        if (!$consultation) {
+            return $this->sendError(__('Consultation not found'));
+        }
+
+        // Return resource with success message
+        return (new PaymentSuccessResource($consultation))
+            ->additional([
+                'message' => __('Payment successful'),
+                'status' => 'success',
+            ]);
     }
+
+
 
     public function cancel(): JsonResponse
     {
