@@ -24,6 +24,7 @@ class DoctorProfile extends Model
         'crm',
         'uf',
         'consultation_fee',
+        'consultation_time',
         'monthly_income',
         'company_income',
         'company_phone',
@@ -50,4 +51,9 @@ class DoctorProfile extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+    public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Rating::class);
+    }
+
 }

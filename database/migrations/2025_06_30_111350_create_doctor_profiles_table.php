@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('crm')->unique()->nullable();
             $table->string('uf')->nullable();
             $table->decimal('consultation_fee', 10, 2)->default(0);
+            $table->time('consultation_time')->nullable()->default('00:10:00');
             $table->decimal('monthly_income', 10, 2)->nullable();
             $table->decimal('company_income', 10, 2)->nullable();
             $table->string('company_phone')->nullable();

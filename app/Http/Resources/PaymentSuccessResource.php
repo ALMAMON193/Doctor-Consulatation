@@ -8,6 +8,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * @property mixed $patient
  * @property mixed $patientMember
  * @property mixed $doctorProfile
+ * @property mixed $patient_member_id
+ * @property mixed $patient_id
  */
 class PaymentSuccessResource extends JsonResource
 {
@@ -21,28 +23,29 @@ class PaymentSuccessResource extends JsonResource
         if ($this->patient_id && $this->patient) {
             $patient = $this->patient;
             $paidBy = [
-                'id' => $patient->id,
-                'name' => $patient->name ?? ($patient->user->name ?? ''),
-                'type' => 'patient',
-                'profile_picture' => $this->normalizeProfilePicture($patient->profile_photo ?? ''),
+                'id'                => $patient->id,
+                'name'              => $patient->name ?? ($patient->user->name ?? ''),
+                'type'              => 'patient',
+                'profile_picture'   => $this->normalizeProfilePicture($patient->profile_photo ?? ''),
             ];
         } elseif ($this->patient_member_id && $this->patientMember) {
             $member = $this->patientMember;
             $paidBy = [
-                'id' => $member->id,
-                'name' => $member->name ?? '',
-                'type' => 'patient_member',
-                'profile_picture' => $this->normalizeProfilePicture($member->profile_photo ?? ''),
+                'id'                => $member->id,
+                'name'              => $member->name ?? '',
+                'type'              => 'patient_member',
+                'profile_picture'   => $this->normalizeProfilePicture($member->profile_photo ?? ''),
             ];
         }
 
         return [
             'doctorProfile' => [
-                'id' => $doctor->id,
-                'name' => $doctor->name ?? ($doctor->user->name ?? ''),
-                'profile_picture' => $this->normalizeProfilePicture($doctor->profile_picture ?? ''),
-                'type' => 'doctor_profile',
-                'paid_by' => $paidBy,
+                'id'                 => $doctor->id,
+                'name'               => $doctor->name ?? ($doctor->user->name ?? ''),
+                'profile_picture'    => $this->normalizeProfilePicture($doctor->profile_picture ?? ''),
+                'type'               => 'doctor_profile',
+                'consultation_time'  => $doctor->consultation_time,
+                'paid_by'            => $paidBy,
             ],
         ];
     }

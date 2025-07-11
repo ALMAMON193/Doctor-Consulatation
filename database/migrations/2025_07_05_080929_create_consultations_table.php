@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('pain_level')->nullable()->default(0);
             $table->date('consultation_date')->nullable();
             $table->enum('payment_status', ['pending', 'paid', 'completed', 'cancelled'])->default('pending');
+            $table->enum('consultation_status', ['pending', 'completed', 'cancelled'])->default('pending');
             $table->timestamps();
 
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');

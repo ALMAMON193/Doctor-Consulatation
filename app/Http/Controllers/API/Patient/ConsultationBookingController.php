@@ -15,6 +15,7 @@ use Stripe\Stripe;
 use Stripe\Webhook;
 use UnexpectedValueException;
 use App\Services\ConsultationService;
+use Exception;
 
 class ConsultationBookingController extends Controller
 {
@@ -27,97 +28,91 @@ class ConsultationBookingController extends Controller
 
     public function book(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'patient_id'         => 'nullable|exists:patients,id',
-            'patient_member_id'  => 'nullable|exists:patient_members,id',
-            'doctor_profile_id'  => 'required|exists:doctor_profiles,id',
-            'coupon_code'        => 'nullable|string',
-            'complaint'          => 'nullable|string|max:2000',
-            'pain_level'         => 'nullable|integer|between:0,10',
-            'consultation_date'  => 'nullable|date',
-            'email'              => 'nullable|email',
-            'payment_status'             => 'nullable|in:pending,paid,completed,cancelled',
-        ]);
+        try {
+            $validated = $request->validate([
+                'patient_id'         => 'nullable|exists:patients,id',
+                'patient_member_id'  => 'nullable|exists:patient_members,id',
+                'doctor_profile_id'  => 'required|exists:doctor_profiles,id',
+                'coupon_code'        => 'nullable|string',
+                'complaint'          => 'nullable|string|max:2000',
+                'pain_level'         => 'nullable|integer|between:0,10',
+                'consultation_date'  => 'nullable|date',
+                'email'              => 'nullable|email',
+                'payment_status'     => 'nullable|in:pending,paid,completed,cancelled',
+            ]);
 
-        // Ensure either patient or member is present
-        if (empty($validated['patient_id']) && empty($validated['patient_member_id'])) {
-            return response()->json(['error' => 'Patient or Patient Member is required'], 422);
-        }
+            if (empty($validated['patient_id']) && empty($validated['patient_member_id'])) {
+                return response()->json(['error' => 'Patient or Patient Member is required'], 422);
+            }
 
-        $doctor = DoctorProfile::findOrFail($validated['doctor_profile_id']);
+            $doctor = DoctorProfile::findOrFail($validated['doctor_profile_id']);
 
-        // Apply coupon and calculate fees
-        $feeDetails = ConsultationService::applyCoupon(
-            $doctor,
-            $validated['coupon_code'] ?? null,
-            $validated['patient_id'] ?? null,
-            $validated['patient_member_id'] ?? null
-        );
+            $feeDetails = ConsultationService::applyCoupon(
+                $doctor,
+                $validated['coupon_code'] ?? null,
+                $validated['patient_id'] ?? null,
+                $validated['patient_member_id'] ?? null
+            );
 
-        if ($feeDetails['error']) {
-            return response()->json(['error' => $feeDetails['error']], 422);
-        }
+            if ($feeDetails['error']) {
+                return response()->json(['error' => $feeDetails['error']], 422);
+            }
 
-        // Create consultation record
-        $consultation = Consultation::create([
-            'patient_id'         => $validated['patient_id'] ?? null,
-            'patient_member_id'  => $validated['patient_member_id'] ?? null,
-            'doctor_profile_id'  => $doctor->id,
-            'fee_amount'         => $feeDetails['fee'],
-            'discount_amount'    => $feeDetails['discount'],
-            'final_amount'       => $feeDetails['final'],
-            'coupon_code'        => $feeDetails['coupon_code'],
-            'complaint'          => $validated['complaint'] ?? null,
-            'pain_level'         => $validated['pain_level'] ?? 0,
-            'consultation_date'  => $validated['consultation_date'] ?? now(),
-            'payment_status' => $validated['payment_status'] ?? 'pending',
-        ]);
+            $consultation = Consultation::create([
+                'patient_id'         => $validated['patient_id'] ?? null,
+                'patient_member_id'  => $validated['patient_member_id'] ?? null,
+                'doctor_profile_id'  => $doctor->id,
+                'fee_amount'         => $feeDetails['fee'],
+                'discount_amount'    => $feeDetails['discount'],
+                'final_amount'       => $feeDetails['final'],
+                'coupon_code'        => $feeDetails['coupon_code'],
+                'complaint'          => $validated['complaint'] ?? null,
+                'pain_level'         => $validated['pain_level'] ?? 0,
+                'consultation_date'  => $validated['consultation_date'] ?? now(),
+                'payment_status'     => $validated['payment_status'] ?? 'pending',
+            ]);
 
-        // Create payment record BEFORE Stripe session
-        $payment = Payment::create([
-            'consultation_id' => $consultation->id,
-            'amount'          => $feeDetails['final'],
-            'currency'        => 'usd',
-            'status'          => 'pending',
-        ]);
-
-        // Prepare product name
-        $productName = 'Consultation';
-        if ($feeDetails['message']) {
-            $productName .= " ({$feeDetails['message']})";
-        }
-
-        // Create Stripe checkout session
-        $session = \Stripe\Checkout\Session::create([
-            'payment_method_types' => ['card'],
-            'line_items' => [[
-                'price_data' => [
-                    'currency'     => 'usd',
-                    'product_data' => ['name' => $productName],
-                    'unit_amount'  => (int) round($feeDetails['final'] * 100),
-                ],
-                'quantity' => 1,
-            ]],
-            'mode'        => 'payment',
-            'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'  => route('payment.fail'),
-            'metadata'    => [
-                'payment_id'      => $payment->id,
+            $payment = Payment::create([
                 'consultation_id' => $consultation->id,
-                'coupon_code'     => $feeDetails['coupon_code'],
-                'discount_amount' => $feeDetails['discount'],
-            ],
-            'customer_email' => $validated['email'] ?? null,
-        ]);
+                'amount'          => $feeDetails['final'],
+                'currency'        => 'usd',
+                'status'          => 'pending',
+            ]);
 
-        // Update payment with Stripe session ID
-        $payment->update(['payment_intent_id' => $session->id]);
+            $productName = 'Consultation';
+            if ($feeDetails['message']) {
+                $productName .= " ({$feeDetails['message']})";
+            }
 
-        return response()->json([
-            'checkout_url' => $session->url,
-        ], 201);
+            $session = \Stripe\Checkout\Session::create([
+                'payment_method_types' => ['card'],
+                'line_items' => [[
+                    'price_data' => [
+                        'currency'     => 'usd',
+                        'product_data' => ['name' => $productName],
+                        'unit_amount'  => (int) round($feeDetails['final'] * 100),
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode'        => 'payment',
+                'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'  => route('payment.fail'),
+                'metadata'    => [
+                    'payment_id'      => $payment->id,
+                    'consultation_id' => $consultation->id,
+                    'coupon_code'     => $feeDetails['coupon_code'],
+                    'discount_amount' => $feeDetails['discount'],
+                ],
+                'customer_email' => $validated['email'] ?? null,
+            ]);
+            $payment->update(['payment_intent_id' => $session->id]);
+            return response()->json(['checkout_url' => $session->url], 201);
+
+        } catch (Exception $e) {
+            Log::error('Booking Error: ' . $e->getMessage());
+            return $this->sendError(__('Something went wrong while booking consultation'));
+        }
     }
-
 
     public function handleWebhook(Request $request): JsonResponse
     {
@@ -126,76 +121,103 @@ class ConsultationBookingController extends Controller
         $secret = config('services.stripe.webhook_secret');
 
         try {
-            $event = Webhook::constructEvent($payload, $signature, $secret);
-        } catch (UnexpectedValueException $e) {
-            Log::error('Stripe webhook: Invalid payload');
+            $event = \Stripe\Webhook::constructEvent($payload, $signature, $secret);
+
+            $payment = null;
+
+            switch ($event->type) {
+
+                case 'checkout.session.completed':
+                    $sessionId = $event->data->object->id;
+
+                    $payment = Payment::where('payment_intent_id', $sessionId)->first();
+
+                    if (!$payment) {
+                        Log::warning('Payment not found for session', ['session_id' => $sessionId]);
+                        break;
+                    }
+
+                    if ($payment->status !== 'completed') {
+
+                        $payment->update([
+                            'status'  => 'completed',
+                            'paid_at' => now(),
+                        ]);
+
+                        Consultation::where('id', $payment->consultation_id)
+                            ->update(['payment_status' => 'paid']);
+                    } else {
+                        Log::info('Payment already completed', ['payment_id' => $payment->id]);
+                    }
+
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    Log::warning('Payment failed', ['session_id' => $event->data->object->id]);
+                    break;
+            }
+
+            return $this->sendResponse(
+                $payment ? $payment->toArray() : [],
+                __('We have received your payment.')
+            );
+
+        } catch (\UnexpectedValueException $e) {
+            Log::error('Invalid payload: ' . $e->getMessage());
             return response()->json(['error' => 'Invalid payload'], 400);
-        } catch (SignatureVerificationException $e) {
-            Log::error('Stripe webhook: Invalid signature');
+        } catch (\Stripe\Exception\SignatureVerificationException $e) {
+            Log::error('Invalid signature: ' . $e->getMessage());
             return response()->json(['error' => 'Invalid signature'], 400);
+        } catch (\Exception $e) {
+            Log::error('Webhook error: ' . $e->getMessage());
+            return response()->json(['error' => 'Webhook failed'], 500);
         }
-
-        switch ($event->type) {
-            case 'checkout.session.completed':
-                $sessionId = $event->data->object->id;
-                $payment = Payment::where('payment_intent_id', $sessionId)->first();
-                if ($payment && $payment->status !== 'completed') {
-                    $payment->update(['status' => 'completed', 'paid_at' => now()]);
-                    Consultation::where('id', $payment->consultation_id)
-                        ->update(['payment_status' => 'paid']);
-                }
-                break;
-
-            case 'payment_intent.payment_failed':
-                Log::warning('Payment failed for session: ' . $event->data->object->id);
-                break;
-        }
-
-        return response()->json(['status' => 'ok']);
     }
 
-    //payment success
+
     public function success(Request $request): JsonResponse|PaymentSuccessResource
     {
-        $sessionId = $request->query('session_id');
+        try {
+            $sessionId = $request->query('session_id');
 
-        if (!$sessionId) {
-            // If you want to return JSON with error and not a resource, use a different approach
-            return response()->json([
-                'data' => [],
-                'message' => __('Payment successful, but session ID is missing')
-            ], 400);
+            if (!$sessionId) {
+                return response()->json([
+                    'data' => [],
+                    'message' => __('Payment successful, but session ID is missing')
+                ], 400);
+            }
+
+            $payment = Payment::where('payment_intent_id', $sessionId)->first();
+
+            if (!$payment) {
+                return response()->json([
+                    'data' => [],
+                    'message' => __('Payment not found')
+                ], 404);
+            }
+
+            $consultation = Consultation::with([
+                'doctorProfile.user',
+                'patient',
+                'patientMember',
+                'patientMember.patient',
+            ])->find($payment->consultation_id);
+
+            if (!$consultation) {
+                return $this->sendError(__('Consultation not found'));
+            }
+
+            return (new PaymentSuccessResource($consultation))
+                ->additional([
+                    'message' => __('Payment successful'),
+                    'status' => 'success',
+                ]);
+
+        } catch (Exception $e) {
+            Log::error('Payment success error: ' . $e->getMessage());
+            return $this->sendError(__('Something went wrong while payment success'));
         }
-
-        $payment = Payment::where('payment_intent_id', $sessionId)->first();
-
-        if (!$payment) {
-            return response()->json([
-                'data' => [],
-                'message' => __('Payment not found')
-            ], 404);
-        }
-
-        $consultation = Consultation::with([
-            'doctorProfile.user',
-            'patient',
-            'patientMember',
-            'patientMember.patient',
-        ])->find($payment->consultation_id);
-
-        if (!$consultation) {
-            return $this->sendError(__('Consultation not found'));
-        }
-
-        // Return resource with success message
-        return (new PaymentSuccessResource($consultation))
-            ->additional([
-                'message' => __('Payment successful'),
-                'status' => 'success',
-            ]);
     }
-
-
 
     public function cancel(): JsonResponse
     {
