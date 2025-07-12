@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\API\Patient\HomeApiController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\AuthApiController;
 use App\Http\Controllers\API\Doctor\CouponApiController;
@@ -88,10 +90,21 @@ Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
 });
 
 // Medical records (patient and member reports)
-Route::prefix('patient/medical-record')->middleware('auth:sanctum')->group(function () {
+Route::prefix('patient/medical-record')->middleware('patient', 'auth:sanctum')->group(function () {
     Route::get('/', [MedicalApiRecordController::class, 'index']); // List medical records
     Route::post('store', [MedicalApiRecordController::class, 'storeMedicalRecord']); // Add medical record
     Route::post('update/{id}', [MedicalApiRecordController::class, 'updateMedicalRecord']); // Update medical record
     Route::delete('delete/{id}', [MedicalApiRecordController::class, 'destroyMedicalRecord']); // Delete medical record
+});
+//patient home records
+Route::prefix('patient/home')->middleware(['patient', 'auth:sanctum'])->group(function () {
+    Route::get('/', [HomeApiController::class, 'index']);
+});
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
+
+Route::get('/test-broadcast', function () {
+    $message = App\Models\Message::latest()->first();
+    event(new App\Events\MessageSent($message));
+    return 'broadcast sent';
 });
 

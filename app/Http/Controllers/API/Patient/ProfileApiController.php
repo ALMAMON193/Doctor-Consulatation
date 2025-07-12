@@ -347,7 +347,6 @@ class ProfileApiController extends Controller
                 'name',
                 'date_of_birth',
                 'relationship',
-                'cpf',
                 'gender',
             ]);
 

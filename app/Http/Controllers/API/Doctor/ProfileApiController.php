@@ -201,10 +201,8 @@ class ProfileApiController extends Controller
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
-
         // Start a transaction to ensure data consistency
         DB::beginTransaction();
-
         try {
             // === Update Doctor Profile (Medical) ===
             // Retrieve or create doctor profile for medical fields

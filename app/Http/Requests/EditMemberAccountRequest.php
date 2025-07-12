@@ -30,7 +30,7 @@ class EditMemberAccountRequest extends FormRequest
             'relationship' => ['required', 'string', 'max:100'],
 
             'cpf' => [
-                'required',
+                'nullable',
                 'string',
                 'max:30',
                 // Unique per patient_id and ignore own row

@@ -8,6 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * @property mixed $doctorProfile
  * @property mixed $consultation_date
+ * @property mixed $id
  */
 class ConsultationResource extends JsonResource
 {
@@ -16,7 +17,7 @@ class ConsultationResource extends JsonResource
         return [
             'id'                 => $this->id,
             'doctor_name'        => optional($this->doctorProfile->user)->name,
-            'doctor_image' => optional($this->doctorProfile->user)->profile_picture
+            'doctor_image'       => optional($this->doctorProfile->user)->profile_picture
                 ? asset(optional($this->doctorProfile->user)->profile_picture)
                 : '',
             'rating'             => $this->averageRatting(),
@@ -26,16 +27,13 @@ class ConsultationResource extends JsonResource
                 : null,
         ];
     }
-
     public function averageRatting(): string
     {
-
         if (!$this->doctorProfile) {
             return '0.0';
         }
         $avg = $this->doctorProfile->ratings()->avg('rating');
         return number_format($avg ?? 0, 1, '.', '');
     }
-
 }
 

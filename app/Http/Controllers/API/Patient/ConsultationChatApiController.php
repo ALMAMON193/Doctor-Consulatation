@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\API\Patient;
 
+use App\Events\MessageSent;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
@@ -81,35 +82,33 @@ class ConsultationChatApiController extends Controller
         $filePath = null;
         $fileType = null;
 
-        // Handle optional file upload
         if ($request->hasFile('file')) {
             $file = $request->file('file');
             $filePath = Helper::fileUpload($file, 'chat_files');
-            $fileType = $file->getClientMimeType();
         }
 
-        // Prepare message data
+        // Patient cannot message patient_member or vice versa
+        if ((
+            ($request->sender_type === 'patient' && $request->receiver_type === 'patient_member') ||
+            ($request->sender_type === 'patient_member' && $request->receiver_type === 'patient')
+        )) {
+            return response()->json(['error' => 'Patient and Patient Member cannot chat with each other.'], 403);
+        }
+
         $messageData = [
-            'message'   => $request->message,
-            'file'      => $filePath,
-            'file_type' => $fileType,
-            'is_read'   => false,
+            'message' => $request->message,
+            'file' => $filePath,
+            'is_read' => false,
         ];
 
-        // Dynamically assign sender ID
         $messageData['sender_' . $request->sender_type . '_id'] = $request->sender_id;
-
-        // Dynamically assign receiver ID
         $messageData['receiver_' . $request->receiver_type . '_id'] = $request->receiver_id;
 
-        // Store message
         $chat = Message::create($messageData);
 
-        return $this->sendResponse(
-            new ChatMessageResource($chat),
-            __('Message sent successfully.')
-        );
-    }
+        broadcast(new MessageSent($chat));
 
+        return $this->sendResponse( new ChatMessageResource($chat), __('Message sent successfully') );
+    }
 
 }

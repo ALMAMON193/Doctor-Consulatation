@@ -33,6 +33,7 @@ class Patient extends Model
     protected $casts = [
         'date_of_birth' => 'date',
     ];
+
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class);

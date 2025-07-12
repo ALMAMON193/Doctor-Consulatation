@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read DoctorProfile  $doctorProfile
  * @property-read Payment|null   $payment
  * @method static create(array $array)
+ * @method static whereIn(string $string, string[] $array)
+ * @method static where(string $string, $id)
  */
 class Consultation extends Model
 {

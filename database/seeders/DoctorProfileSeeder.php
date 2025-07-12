@@ -12,6 +12,40 @@ class DoctorProfileSeeder extends Seeder
     public function run(): void
     {
         $doctors = User::where('user_type', 'doctor')->get();
+        $specializations = [
+            'Allergy and Immunology',
+            'Anesthesiology',
+            'Cardiology',
+            'Dermatology',
+            'Emergency Medicine',
+            'Endocrinology',
+            'Family Medicine',
+            'Gastroenterology',
+            'Geriatrics',
+            'Hematology',
+            'Infectious Disease',
+            'Internal Medicine',
+            'Nephrology',
+            'Neurology',
+            'Neurosurgery',
+            'Obstetrics and Gynecology',
+            'Oncology',
+            'Ophthalmology',
+            'Orthopedic Surgery',
+            'Otolaryngology',
+            'Pathology',
+            'Pediatrics',
+            'Physical Medicine and Rehabilitation',
+            'Plastic Surgery',
+            'Psychiatry',
+            'Pulmonology',
+            'Radiology',
+            'Rheumatology',
+            'Surgery',
+            'Thoracic Surgery',
+            'Urology',
+            'Vascular Surgery',
+        ];
 
         foreach ($doctors as $doctor) {
             // Skip if profile already exists
@@ -22,7 +56,7 @@ class DoctorProfileSeeder extends Seeder
             DB::table('doctor_profiles')->insert([
                 'user_id'                     => $doctor->id,
                 'additional_medical_record_number' => Str::random(10),
-                'specialization'             => 'Cardiology',
+                'specialization' => $specializations[array_rand($specializations)],
                 'cpf_bank'                   => '12345678900',
                 'bank_name'                  => 'Health Bank',
                 'account_type'               => 'Savings',
@@ -34,7 +68,7 @@ class DoctorProfileSeeder extends Seeder
                 'monthly_income'             => rand(10000, 40000),
                 'company_income'             => rand(5000, 20000),
                 'company_phone'              => '0123456789',
-                'company_name'               => 'MediCenter ' . $doctor->id,
+                'company_name'               => 'MediaCenter ' . $doctor->id,
                 'address_zipcode'            => '12345-678',
                 'address_number'             => '12A',
                 'address_street'             => 'Medical Street',

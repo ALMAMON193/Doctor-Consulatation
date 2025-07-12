@@ -77,6 +77,10 @@ class User extends Authenticatable
     {
         return $this->hasOne(Patient::class);
     }
+    public function patientMember(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PatientMember::class);
+    }
     public function personalDetail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(UserPersonalDetail::class);
