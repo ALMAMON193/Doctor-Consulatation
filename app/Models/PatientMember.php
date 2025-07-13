@@ -25,4 +25,25 @@ class PatientMember extends Model
     {
         return $this->hasMany(PatientMedicalRecord::class);
     }
+
+    //data auto update when patient
+    protected static function booted(): void
+    {
+        static::created(function ($member) {
+            $member->patient->update([
+                'family_member_of_patient' => $member->patient->patientMembers()->count(),
+            ]);
+        });
+
+        static::deleted(function ($member) {
+            $member->patient->update([
+                'family_member_of_patient' => $member->patient->patientMembers()->count(),
+            ]);
+        });
+        static::updated(function ($member) {
+            $member->patient->update([
+                'family_member_of_patient' => $member->patient->patientMembers()->count(),
+            ]);
+        });
+    }
 }

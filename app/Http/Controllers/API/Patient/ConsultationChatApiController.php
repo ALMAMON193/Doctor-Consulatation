@@ -7,7 +7,6 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
 use App\Http\Resources\ChatMessageResource;
-use App\Http\Resources\ChatParticipantResource;
 use App\Models\Consultation;
 use App\Models\Message;
 use App\Traits\ApiResponse;
@@ -17,65 +16,6 @@ use Illuminate\Support\Facades\Log;
 class ConsultationChatApiController extends Controller
 {
     use ApiResponse;
-
-    public function getChatParticipantsInfo(): \Illuminate\Http\JsonResponse
-    {
-        $user = auth()->user()->load(['doctorProfile', 'patient.patientMembers', 'patient.user']);
-
-        $response = new ChatParticipantResource([
-            'doctorProfile'   => $this->getPaidDoctors($user),
-            'patientProfile'  => $user->patient ?? [],
-        ]);
-
-        return $this->sendResponse($response, __('Information retrieved successfully.'));
-    }
-
-    private function getPaidDoctors($user)
-    {
-        if (!$user->patient) return collect();
-
-        $patient = $user->patient;
-        $memberIds = $patient->patientMembers->pluck('id')->toArray();
-        $membersMap = $patient->patientMembers->keyBy('id');
-
-        $consultations = \App\Models\Consultation::with('doctorProfile')
-            ->where('payment_status', 'paid')
-            ->where(function ($q) use ($patient, $memberIds) {
-                $q->where('patient_id', $patient->id)
-                    ->orWhereIn('patient_member_id', $memberIds);
-            })
-            ->orderByDesc('id')
-            ->get();
-
-        return $consultations
-            ->filter(fn($c) => $c->doctorProfile !== null)
-            ->groupBy('doctor_profile_id')
-            ->map(function ($group) use ($user, $membersMap) {
-                $consult = $group->first();
-                $doctor = $consult->doctorProfile;
-
-                // Attach paid_by info
-                if ($consult->patient_id) {
-                    $doctor->paid_by = [
-                        'id'                    => $user->id,
-                        'name'                  => $user->name,
-                        'type'                  => 'patient',
-                        'profile_picture'       => $user->profile_picture ?? ""
-                    ];
-                } elseif ($consult->patient_member_id && isset($membersMap[$consult->patient_member_id])) {
-                    $member = $membersMap[$consult->patient_member_id];
-                    $doctor->paid_by = [
-                        'id'                    => $member->id,
-                        'name'                  => $member->name,
-                        'type'                  => 'patient_member',
-                        'profile_picture'       => $user->profile_picture ?? ""
-                    ];
-                }
-                return $doctor;
-            })->values();
-    }
-
-
     //store message
     public function sendMessage(SendMessageRequest $request): \Illuminate\Http\JsonResponse
     {
@@ -108,7 +48,42 @@ class ConsultationChatApiController extends Controller
 
         broadcast(new MessageSent($chat));
 
-        return $this->sendResponse( new ChatMessageResource($chat), __('Message sent successfully') );
+        return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
+    }
+
+    public function getConversationHistory(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'receiver_type' => 'required|in:doctor_profile,patient,patient_member',
+            'receiver_id' => 'required|integer',
+        ]);
+
+        $user = auth()->user();
+
+        // Determine sender type and id
+        if ($user->doctorProfile) {
+            $senderType = 'doctor_profile';
+            $senderId = $user->doctorProfile->id;
+        } elseif ($user->patient) {
+            $senderType = 'patient';
+            $senderId = $user->patient->id;
+        } elseif ($user->patientMember) {
+            $senderType = 'patient_member';
+            $senderId = $user->patientMember->id;
+        } else {
+            return response()->json(['error' => 'Invalid user type.'], 403);
+        }
+
+        // Simple conversation query: messages between two parties regardless of sender/receiver sides
+        $messages = \App\Models\Message::where(function ($q) use ($senderType, $senderId, $request) {
+            $q->where("sender_{$senderType}_id", $senderId)
+                ->where("receiver_{$request->receiver_type}_id", $request->receiver_id);
+        })->orWhere(function ($q) use ($senderType, $senderId, $request) {
+            $q->where("sender_{$request->receiver_type}_id", $request->receiver_id)
+                ->where("receiver_{$senderType}_id", $senderId);
+        })->orderBy('created_at', 'asc')->get();
+
+        return $this->sendResponse(ChatMessageResource::collection($messages), __('Messages retrieved successfully'));
     }
 
 }

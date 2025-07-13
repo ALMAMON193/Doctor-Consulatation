@@ -51,4 +51,21 @@ class Consultation extends Model
     {
         return $this->belongsTo(PatientMember::class, 'patient_member_id');
     }
+
+    protected static function booted(): void
+    {
+        static::created(function ($consultation) {
+            // if payment status paid
+            if ($consultation->payment_status === 'paid') {
+                // if  patient make a consultation
+                if ($consultation->patient_id) {
+                    $consultation->patient?->increment('consulted');
+                }
+                // if member make a consultation
+                elseif ($consultation->patient_member_id) {
+                    $consultation->patientMember?->patient?->increment('consulted');
+                }
+            }
+        });
+    }
 }

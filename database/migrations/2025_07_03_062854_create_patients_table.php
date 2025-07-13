@@ -27,8 +27,8 @@ return new class extends Migration
             $table->string('state')->nullable();
             $table->string('profile_photo')->nullable();
             $table->integer('consulted')->default(0);
-            $table->integer('family_member_consulted')->default(0);
-            $table->enum('verification_status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->integer('family_member_of_patient')->default(0);
+            $table->enum('verification_status', ['pending', 'approved', 'rejected','unverified'])->default('pending');
             $table->text('verification_rejection_reason')->nullable();
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

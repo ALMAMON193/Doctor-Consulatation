@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @method static where(string $string, $id)
+ * @method static updateOrCreate(array $array, array $only)
  */
 class UserPersonalDetail extends Model
 {

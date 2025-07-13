@@ -83,7 +83,7 @@ class DoctorProfileSeeder extends Seeder
                 'phone_number'               => $doctor->phone_number,
                 'video_path'                 => 'null',
                 'profile_picture'            => 'null',
-                'verification_status'        => 'approved',
+                'verification_status'        => 'pending',
                 'verification_rejection_reason' => null,
                 'is_active'                  => true,
                 'last_seen'                  => now(),

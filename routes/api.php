@@ -36,12 +36,14 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('doctor-list', [DoctorApiController::class, 'doctorList']); // List doctors
     Route::get('doctor-details/{id}', [DoctorApiController::class, 'doctorDetails']); // Doctor details
+    Route::post('create-doctor', [DoctorApiController::class, 'createDoctor']);
 });
 
 // Admin patient management routes
 Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('patient-list', [PatientApiController::class, 'patientList']); // List patients
-    Route::get('patient-details/{id}', [PatientApiController::class, 'doctorDetails']); // Patient details
+    Route::get('patient-details/{id}', [PatientApiController::class, 'patientDetails']); // Patient details
+    Route::post('create-patient', [PatientApiController::class, 'createPatient']);
 });
 
 // Doctor routes (profile, medical, financial, coupons)
@@ -87,6 +89,7 @@ Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebh
 Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
     Route::get('participants', [ConsultationChatApiController::class, 'getChatParticipantsInfo']); // Chat participants
     Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']); // Send message
+    Route::get('history', [ConsultationChatApiController::class, 'getConversationHistory']);
 });
 
 // Medical records (patient and member reports)

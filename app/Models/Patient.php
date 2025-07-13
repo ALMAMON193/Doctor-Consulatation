@@ -25,7 +25,7 @@ class Patient extends Model
         'state',
         'profile_photo',
         'consulted',
-        'family_member_consulted',
+        'family_member_of_patient',
         'verification_status',
         'verification_rejection_reason'
     ];

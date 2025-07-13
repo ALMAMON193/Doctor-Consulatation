@@ -13,6 +13,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+/**
+ * @method static create(mixed $validated, \Illuminate\Contracts\Auth\Authenticatable $user)
+ */
 class User extends Authenticatable
 {
 
@@ -85,7 +88,5 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserPersonalDetail::class);
     }
-
-
 
 }

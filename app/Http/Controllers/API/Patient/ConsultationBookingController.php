@@ -8,6 +8,7 @@ use App\Traits\ApiResponse;
 use App\Models\{Consultation, Coupon, CouponUser, DoctorProfile, Payment};
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Checkout\Session;
 use Stripe\Exception\SignatureVerificationException;
@@ -144,14 +145,25 @@ class ConsultationBookingController extends Controller
                             'paid_at' => now(),
                         ]);
 
-                        Consultation::where('id', $payment->consultation_id)
-                            ->update(['payment_status' => 'paid']);
+                        $consultation = Consultation::find($payment->consultation_id);
+
+                        if ($consultation) {
+                            // Mark consultation as paid
+                            $consultation->update(['payment_status' => 'paid']);
+
+                            // Update main patient's consultation count
+                            if ($consultation->patient_id) {
+                                DB::table('patients')->where('id', $consultation->patient_id)->increment('consulted');
+                            }
+                        } else {
+                            Log::warning('Consultation not found', ['consultation_id' => $payment->consultation_id]);
+                        }
+
                     } else {
                         Log::info('Payment already completed', ['payment_id' => $payment->id]);
                     }
 
                     break;
-
                 case 'payment_intent.payment_failed':
                     Log::warning('Payment failed', ['session_id' => $event->data->object->id]);
                     break;
@@ -173,7 +185,6 @@ class ConsultationBookingController extends Controller
             return response()->json(['error' => 'Webhook failed'], 500);
         }
     }
-
 
     public function success(Request $request): JsonResponse|PaymentSuccessResource
     {
