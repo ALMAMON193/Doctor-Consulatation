@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\User;
+use App\Models\PatientMember;
+use App\Models\PatientMedicalRecord;
 use Illuminate\Database\Eloquent\Model;
 
 /**
