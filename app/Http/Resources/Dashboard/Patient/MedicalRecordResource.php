@@ -14,7 +14,6 @@ class MedicalRecordResource extends JsonResource
             'id' => $this->id,
             'record_type' => $this->record_type,
             'details' => $this->details,
-
         ];
     }
 }
