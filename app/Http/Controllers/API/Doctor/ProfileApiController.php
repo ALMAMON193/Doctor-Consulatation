@@ -43,6 +43,7 @@ class ProfileApiController extends Controller
         try {
             $apiResponse = [
                 'account_information' => [
+                    'id'             => optional($user->doctorProfile)->id,
                     'user_id'        => $user->id,
                     'user_name'      => $user->name,
                     'email'          => $user->email,

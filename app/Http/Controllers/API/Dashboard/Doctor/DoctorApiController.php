@@ -9,6 +9,7 @@ use App\Http\Resources\Dashboard\Doctor\DoctorListResource;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DoctorApiController extends Controller
 {
@@ -18,17 +19,45 @@ class DoctorApiController extends Controller
     {
         $perPage = $request->input('per_page', 10);
 
+        // ✅ Get analytics summary
+        $analytics = $this->getDoctorAnalytics();
+
+        // ✅ Get doctors list with profile
         $doctors = User::with('doctorProfile')
             ->where('user_type', 'doctor')
             ->latest()
             ->paginate($perPage);
 
-        $resourceCollection = DoctorListResource::collection($doctors);
-
-        // Manually pass original paginator to sendResponse()
-        return $this->sendResponse($doctors->setCollection(collect($resourceCollection->resolve())), __('Doctor list successfully.'));
-
+        $responseApi = [
+            'analytics' => $analytics,
+            'doctor_list' => DoctorListResource::collection($doctors),
+        ];
+        return $this->sendResponse($responseApi, __('Doctors List'));
     }
+    private function getDoctorAnalytics(): array
+    {
+        $allDoctors = User::where('user_type', 'doctor')->count();
+
+        $doctorStatuses = DB::table('doctor_profiles')
+            ->select('id', 'verification_status')
+            ->get();
+
+        $consultationCounts = DB::table('consultations')
+            ->select('doctor_profile_id', DB::raw('COUNT(*) as total_consulted'))
+            ->where('consultation_status', 'completed')
+            ->groupBy('doctor_profile_id')
+            ->pluck('total_consulted', 'doctor_profile_id');
+
+
+        return [
+            'allDoctors' => $allDoctors,
+            'verifiedDoctor' => $doctorStatuses->where('verification_status', 'approved')->count(),
+            'pendingDoctor' => $doctorStatuses->where('verification_status','pending')->count(),
+            'unverifiedDoctor' => $doctorStatuses->where('verification_status','unverified')->count(),
+        ];
+    }
+
+
 
     //doctor Create for admin dashboard
     public function doctorDetails($id): \Illuminate\Http\JsonResponse

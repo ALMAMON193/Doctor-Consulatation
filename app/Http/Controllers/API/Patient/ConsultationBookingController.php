@@ -47,6 +47,9 @@ class ConsultationBookingController extends Controller
             }
 
             $doctor = DoctorProfile::findOrFail($validated['doctor_profile_id']);
+            if (!$doctor) {
+                return response()->json(['error' => 'Doctor not found'], 422);
+            }
 
             $feeDetails = ConsultationService::applyCoupon(
                 $doctor,
