@@ -17,38 +17,113 @@ class ConsultationChatApiController extends Controller
 {
     use ApiResponse;
     //store message
+//    public function sendMessage(SendMessageRequest $request): \Illuminate\Http\JsonResponse
+//    {
+//
+//        $filePath = null;
+//        $fileType = null;
+//
+//        if ($request->hasFile('file')) {
+//            $file = $request->file('file');
+//            $filePath = Helper::fileUpload($file, 'chat_files');
+//        }
+//
+//        // Patient cannot message patient_member or vice versa
+////        if ((
+////            ($request->sender_type === 'patient' && $request->receiver_type === 'patient_member') ||
+////            ($request->sender_type === 'patient_member' && $request->receiver_type === 'patient')
+////        )) {
+////            return response()->json(['error' => 'Patient and Patient Member cannot chat with each other.'], 403);
+////        }
+//
+//        $messageData = [
+//            'message' => $request->message,
+//            'file' => $filePath,
+//            'is_read' => false,
+//        ];
+//
+//        $messageData['sender_' . $request->sender_type . '_id'] = $request->sender_id;
+//        $messageData['receiver_' . $request->receiver_type . '_id'] = $request->receiver_id;
+//
+//        $chat = Message::create($messageData);
+//
+//        broadcast(new MessageSent($chat));
+//
+//        return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
+//    }
     public function sendMessage(SendMessageRequest $request): \Illuminate\Http\JsonResponse
     {
-        $filePath = null;
-        $fileType = null;
-
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $filePath = Helper::fileUpload($file, 'chat_files');
-        }
-
-        // Patient cannot message patient_member or vice versa
-        if ((
-            ($request->sender_type === 'patient' && $request->receiver_type === 'patient_member') ||
-            ($request->sender_type === 'patient_member' && $request->receiver_type === 'patient')
-        )) {
-            return response()->json(['error' => 'Patient and Patient Member cannot chat with each other.'], 403);
-        }
-
-        $messageData = [
+        Log::info('sendMessage request received', [
+            'sender_type' => $request->sender_type,
+            'sender_id' => $request->sender_id,
+            'receiver_type' => $request->receiver_type,
+            'receiver_id' => $request->receiver_id,
             'message' => $request->message,
-            'file' => $filePath,
-            'is_read' => false,
-        ];
+            'has_file' => $request->hasFile('file'),
+        ]);
 
-        $messageData['sender_' . $request->sender_type . '_id'] = $request->sender_id;
-        $messageData['receiver_' . $request->receiver_type . '_id'] = $request->receiver_id;
+        try {
+            // Validate sender and receiver types
+            $validTypes = ['doctor_profile', 'patient', 'patient_member'];
+            if (!in_array($request->sender_type, $validTypes) || !in_array($request->receiver_type, $validTypes)) {
+                Log::warning('Invalid sender or receiver type', [
+                    'sender_type' => $request->sender_type,
+                    'receiver_type' => $request->receiver_type,
+                ]);
+                return response()->json(['error' => 'Invalid sender or receiver type'], 400);
+            }
 
-        $chat = Message::create($messageData);
+            // Prevent patient-to-patient_member messaging
+            if (
+                ($request->sender_type === 'patient' && $request->receiver_type === 'patient_member') ||
+                ($request->sender_type === 'patient_member' && $request->receiver_type === 'patient')
+            ) {
+                Log::warning('Forbidden: Patient and patient member cannot chat', [
+                    'sender_type' => $request->sender_type,
+                    'receiver_type' => $request->receiver_type,
+                ]);
+                return response()->json(['error' => 'Patient and patient member cannot chat with each other'], 403);
+            }
 
-        broadcast(new MessageSent($chat));
+            // Handle file upload
+            $filePath = null;
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $request->validate([
+                    'file' => 'mimes:jpg,png,pdf,doc,docx|max:10240',
+                ]);
+                $filePath = Helper::fileUpload($file, 'chat_files');
+                Log::info('File uploaded', ['file_path' => $filePath]);
+            }
 
-        return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
+            // Prepare message data
+            $messageData = [
+                'message' => $request->message,
+                'file' => $filePath,
+                'is_read' => false,
+                'sender_' . $request->sender_type . '_id' => $request->sender_id,
+                'receiver_' . $request->receiver_type . '_id' => $request->receiver_id,
+            ];
+            Log::info('Message data prepared', $messageData);
+
+            // Create and broadcast message
+            $chat = Message::create($messageData);
+            Log::info('Message created', ['message_id' => $chat->id]);
+
+            broadcast(new MessageSent($chat))->toOthers();
+            Log::info('Message broadcasted', ['message_id' => $chat->id]);
+
+            return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
+        } catch (\Exception $e) {
+            Log::error('Failed to send message', [
+                'error' => $e->getMessage(),
+                'sender_type' => $request->sender_type,
+                'sender_id' => $request->sender_id,
+                'receiver_type' => $request->receiver_type,
+                'receiver_id' => $request->receiver_id,
+            ]);
+            return response()->json(['error' => 'Failed to send message'], 500);
+        }
     }
 
     public function getConversationHistory(Request $request): \Illuminate\Http\JsonResponse

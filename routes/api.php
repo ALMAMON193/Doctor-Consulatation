@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\Dashboard\Consultation\ConsultationApiController;
 use App\Http\Controllers\API\Patient\HomeApiController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -44,6 +45,13 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('patient-list', [PatientApiController::class, 'patientList']); // List patients
     Route::get('patient-details/{id}', [PatientApiController::class, 'patientDetails']); // Patient details
     Route::post('create-patient', [PatientApiController::class, 'createPatient']);
+});
+
+// Admin consultation management routes
+Route::prefix('admin')->middleware('admin')->group(function () {
+    Route::get('consultation-list', [ConsultationApiController::class, 'consultationList']); // List Consultations
+    Route::get('consultation-details/{id}', [ConsultationApiController::class, 'consultationDetails']); // Consultation details
+    Route::post('consultation-create', [ConsultationApiController::class, 'consultationCreate']);
 });
 
 // Doctor routes (profile, medical, financial, coupons)
@@ -105,9 +113,5 @@ Route::prefix('patient/home')->middleware(['patient', 'auth:sanctum'])->group(fu
 });
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
-Route::get('/test-broadcast', function () {
-    $message = App\Models\Message::latest()->first();
-    event(new App\Events\MessageSent($message));
-    return 'broadcast sent';
-});
+
 

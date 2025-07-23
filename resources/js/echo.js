@@ -10,36 +10,43 @@ window.Echo = new Echo({
     wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
     wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    authEndpoint: '/api/broadcasting/auth',
+    enabledTransports: ['ws', 'wss'],
     auth: {
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token'),
         },
     },
-    enabledTransports: ['ws', 'wss'],
 });
-console.log("revert start");
 
+console.log('Reverb initialized', {
+    key: import.meta.env.VITE_REVERB_APP_KEY,
+    host: import.meta.env.VITE_REVERB_HOST,
+    port: import.meta.env.VITE_REVERB_PORT,
+    scheme: import.meta.env.VITE_REVERB_SCHEME,
+});
 
-const doctorId = 2; // doctor id
-const userType = 'patient'; //  'patient' or 'doctor_profile'
-const userId = 1; // patient_member  (patient_member id, patient id, doctor_profile id)
+// Example: Dynamic user data (should come from auth or UI)
+const currentUserType = 'doctor_profile'; // Example
+const currentUserId = 3; // Example
+const otherUserType = 'patient'; // Example
+const otherUserId = 1; // Example
 
-let channelName;
+// Sort IDs to match channel naming
+const ids = [currentUserId, otherUserId].sort();
+const channelName = `chat.${currentUserType}.${ids[0]}.${otherUserType}.${ids[1]}`;
+console.log('Subscribing to channel', { channelName });
 
-if (userType === 'patient_member') {
-    channelName = `chat.doctor.${doctorId}.member.${userId}`;
-} else if (userType === 'patient') {
-    channelName = `chat.doctor.${doctorId}.patient.${userId}`;
-} else {
-    // doctor_profile
-    channelName = null;
-}
-
-if (channelName) {
-    window.Echo.private(channelName)
-        .listen('.MessageSent', (e) => {
-            console.log('message send:', e.message);
+window.Echo.private(channelName)
+    .listen('.MessageSent', (data) => {
+        console.log('Message received', {
+            message_id: data.id,
+            sender: data.sender,
+            message: data.message,
+            file_url: data.file_url,
+            created_at: data.created_at,
         });
-}
+    })
+    .error((error) => {
+        console.error('WebSocket error', { error });
+    });
+

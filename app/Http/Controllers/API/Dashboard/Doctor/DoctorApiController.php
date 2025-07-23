@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\Doctor\StoreRequest;
 use App\Http\Resources\Dashboard\Doctor\DoctorDetailResource;
 use App\Http\Resources\Dashboard\Doctor\DoctorListResource;
+use App\Http\Resources\Dashboard\Patient\PatientListResource;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -17,22 +18,34 @@ class DoctorApiController extends Controller
 
     public function doctorList(Request $request): \Illuminate\Http\JsonResponse
     {
+
         $perPage = $request->input('per_page', 10);
 
         // ✅ Get analytics summary
         $analytics = $this->getDoctorAnalytics();
-
-        // ✅ Get doctors list with profile
+        // 👤 Get patient list with pagination
         $doctors = User::with('doctorProfile')
             ->where('user_type', 'doctor')
-            ->latest()
             ->paginate($perPage);
 
-        $responseApi = [
+        //Apply resource formatting
+        $collection = DoctorListResource::collection($doctors)->resolve();
+        $doctors->setCollection(collect($collection));
+        $apiResponse = [
             'analytics' => $analytics,
-            'doctor_list' => DoctorListResource::collection($doctors),
+            'list' => $doctors->items(),
+            'pagination' => [
+                'total' => $doctors->total(),
+                'per_page' => $doctors->perPage(),
+                'current_page' => $doctors->currentPage(),
+                'last_page' => $doctors->lastPage(),
+                'from' => $doctors->firstItem(),
+                'to' => $doctors->lastItem()
+            ]
         ];
-        return $this->sendResponse($responseApi, __('Doctors List'));
+
+        return $this->sendResponse($apiResponse, __('Doctor data List fetched successfully.'));
+
     }
     private function getDoctorAnalytics(): array
     {
@@ -56,9 +69,6 @@ class DoctorApiController extends Controller
             'unverifiedDoctor' => $doctorStatuses->where('verification_status','unverified')->count(),
         ];
     }
-
-
-
     //doctor Create for admin dashboard
     public function doctorDetails($id): \Illuminate\Http\JsonResponse
     {

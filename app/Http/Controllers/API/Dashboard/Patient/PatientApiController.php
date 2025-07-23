@@ -20,25 +20,31 @@ class PatientApiController extends Controller
     public function patientList(Request $request): \Illuminate\Http\JsonResponse
     {
         $perPage = $request->input('per_page', 10);
-
-        // 📊 Get analytics summary
         $analytics = $this->getPatientAnalytics();
-
-        // 👤 Get patient list with pagination
-        $patients = User::with('patient') // Assuming you have a `patient()` relationship in User model
-        ->where('user_type', 'patient')
-
+        $patients = User::with('patient')
+            ->where('user_type', 'patient')
             ->paginate($perPage);
 
-        // 🧼 Apply resource formatting
-        $collection = PatientListResource::collection($patients)->resolve();
-        $patients->setCollection(collect($collection));
+        // Apply resource transformation on collection inside paginator
+        $patients->getCollection()->transform(function ($patient) {
+            return new PatientListResource($patient);
+        });
+        $apiResponse = [
+            'analytics'  => $analytics,
+            'list'       => $patients->items(),
+            'pagination' => [
+                'total'        => $patients->total(),
+                'per_page'     => $patients->perPage(),
+                'current_page' => $patients->currentPage(),
+                'last_page'    => $patients->lastPage(),
+                'from'         => $patients->firstItem(),
+                'to'           => $patients->lastItem(),
+            ],
+        ];
 
-        return $this->sendResponse([
-            'analytics' => $analytics,
-            'list' => $patients->items(),
-        ], __('Patient list fetched successfully.'));
+        return $this->sendResponse($apiResponse, __('Patient list fetched successfully.'));
     }
+
 
     private function getPatientAnalytics(): array
     {

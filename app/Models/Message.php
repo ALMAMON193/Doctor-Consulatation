@@ -4,6 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property mixed $receiver_patient_member_id
+ * @property mixed $sender_doctor_profile_id
+ * @property mixed $receiver_patient_id
+ */
 class Message extends Model
 {
     protected $fillable = [

@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Consultation extends Model
 {
-    // doctor_id নয়, doctor_profile_id ফিল্ড দরকার
+    // doctor_id  doctor_profile_id
     protected $fillable = [
         'patient_id',
         'doctor_profile_id',
@@ -38,6 +38,11 @@ class Consultation extends Model
         return $this->belongsTo(Patient::class);
     }
 
+    public function patientMember(): BelongsTo
+    {
+        return $this->belongsTo(PatientMember::class, 'patient_member_id');
+    }
+
     public function doctorProfile(): BelongsTo
     {
         return $this->belongsTo(DoctorProfile::class);
@@ -46,10 +51,6 @@ class Consultation extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
-    }
-    public function patientMember(): BelongsTo
-    {
-        return $this->belongsTo(PatientMember::class, 'patient_member_id');
     }
 
     protected static function booted(): void

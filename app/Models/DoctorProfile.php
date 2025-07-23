@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\User;
+use App\Models\Rating;
+use App\Models\Consultation;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -53,9 +55,15 @@ class DoctorProfile extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
     public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Rating::class);
     }
+    public function completedConsultations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Consultation::class)->where('consultation_status', 'completed');
+    }
+
 
 }

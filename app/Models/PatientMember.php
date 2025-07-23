@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +14,7 @@ class PatientMember extends Model
         'date_of_birth',
         'cpf',
         'relationship',
-        'profile_photo'
+        'profile_photo',
     ];
     public function patient(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

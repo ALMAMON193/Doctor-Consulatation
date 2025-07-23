@@ -23,7 +23,6 @@ use Throwable;
 class ProfileApiController extends Controller
 {
     use ApiResponse;
-
     /**
      * Retrieve detailed profile information for the authenticated doctor.
      *
@@ -106,8 +105,6 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Sorry, something went wrong.'), [], 500);
         }
     }
-
-
     /**
      * Update basic user information and personal details.
      *
@@ -177,7 +174,6 @@ class ProfileApiController extends Controller
                     'account_type' => $request->account_type,
                 ]
             );
-
             // Commit transaction and return success response
             DB::commit();
             return $this->sendResponse([], __('Profile details updated successfully.'));
@@ -187,8 +183,6 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Sorry, something went wrong while updating profile details.'), [], 500);
         }
     }
-
-
     /**
      * Update medical information (CRM, UF, specialization, video).
      *
