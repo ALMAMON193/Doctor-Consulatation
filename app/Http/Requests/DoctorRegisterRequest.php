@@ -21,7 +21,6 @@ class DoctorRegisterRequest extends FormRequest
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'phone_number' => 'required|string|max:20',
-            'user_type' => 'required|in:doctor,patient',
             'terms_and_conditions' => 'required|boolean',
         ];
     }
@@ -32,7 +31,6 @@ class DoctorRegisterRequest extends FormRequest
             'full_name.required' => 'The full name is required.',
             'email.unique' => 'This email is already registered.',
             'password.confirmed' => 'The password confirmation does not match.',
-            'role.in' => 'Please select a valid role.',
             'terms_and_conditions.required' => 'Please accept the terms and conditions.',
         ];
     }

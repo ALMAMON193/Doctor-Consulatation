@@ -55,7 +55,6 @@ class AuthApiController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|string|email',
             'password' => 'required|string|min:8',
-            'user_type' => 'required|in:doctor,patient,admin',
         ]);
 
         if ($validator->fails()) {
