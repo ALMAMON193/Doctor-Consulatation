@@ -20,10 +20,18 @@ class PatientApiController extends Controller
     public function patientList(Request $request): \Illuminate\Http\JsonResponse
     {
         $perPage = $request->input('per_page', 10);
+        $statusFilter = $request->input('status'); // 'pending', 'verified', 'unverified', or 'rejected'
         $analytics = $this->getPatientAnalytics();
-        $patients = User::with('patient')
+        $query = User::with('patient')
             ->where('user_type', 'patient')
-            ->paginate($perPage);
+            ->when($statusFilter, function ($q) use ($statusFilter) {
+                $q->whereHas('patient', function ($q2) use ($statusFilter) {
+                    $q2->where('verification_status', $statusFilter);
+                });
+            });
+
+        // 👤 Paginate
+        $patients = $query->paginate($perPage);
 
         // Apply resource transformation on collection inside paginator
         $patients->getCollection()->transform(function ($patient) {
@@ -52,7 +60,7 @@ class PatientApiController extends Controller
 
         $statuses = DB::table('patients')
             ->selectRaw("
-                SUM(verification_status = 'approved')  as verified,
+                SUM(verification_status = 'verified')  as verified,
                 SUM(verification_status = 'pending')   as pending,
                 SUM(verification_status = 'rejected')  as unverified
             ")

@@ -18,19 +18,29 @@ class DoctorApiController extends Controller
 
     public function doctorList(Request $request): \Illuminate\Http\JsonResponse
     {
-
         $perPage = $request->input('per_page', 10);
+        $statusFilter = $request->input('status'); // 'pending', 'verified', 'unverified', or 'rejected'
 
-        // ✅ Get analytics summary
+        //  Get analytics summary
         $analytics = $this->getDoctorAnalytics();
-        // 👤 Get patient list with pagination
-        $doctors = User::with('doctorProfile')
-            ->where('user_type', 'doctor')
-            ->paginate($perPage);
 
-        //Apply resource formatting
+        // 👤 Build doctor query
+        $query = User::with('doctorProfile')
+            ->where('user_type', 'doctor')
+            ->when($statusFilter, function ($q) use ($statusFilter) {
+                $q->whereHas('doctorProfile', function ($q2) use ($statusFilter) {
+                    $q2->where('verification_status', $statusFilter);
+                });
+            });
+
+        // 👤 Paginate
+        $doctors = $query->paginate($perPage);
+
+        // 🛠️ Apply resource formatting
         $collection = DoctorListResource::collection($doctors)->resolve();
         $doctors->setCollection(collect($collection));
+
+        //  Format response
         $apiResponse = [
             'analytics' => $analytics,
             'list' => $doctors->items(),
@@ -45,7 +55,6 @@ class DoctorApiController extends Controller
         ];
 
         return $this->sendResponse($apiResponse, __('Doctor data List fetched successfully.'));
-
     }
     private function getDoctorAnalytics(): array
     {
@@ -64,7 +73,7 @@ class DoctorApiController extends Controller
 
         return [
             'allDoctors' => $allDoctors,
-            'verifiedDoctor' => $doctorStatuses->where('verification_status', 'approved')->count(),
+            'verifiedDoctor' => $doctorStatuses->where('verification_status', 'verified')->count(),
             'pendingDoctor' => $doctorStatuses->where('verification_status','pending')->count(),
             'unverifiedDoctor' => $doctorStatuses->where('verification_status','unverified')->count(),
         ];

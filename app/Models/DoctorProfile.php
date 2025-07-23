@@ -56,14 +56,18 @@ class DoctorProfile extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(Rating::class);
-    }
     public function completedConsultations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Consultation::class)->where('consultation_status', 'completed');
     }
+    public function consultations()
+    {
+        return $this->hasMany(Consultation::class, 'doctor_profile_id');
+    }
 
+    public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Rating::class, 'doctor_profile_id');
+    }
 
 }
