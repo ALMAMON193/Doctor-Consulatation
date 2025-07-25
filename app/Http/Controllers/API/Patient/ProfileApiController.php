@@ -66,9 +66,10 @@ class ProfileApiController extends Controller
             ],
             'file_upload' => [
                 'profile_photo' => $patient->profile_photo
-                    ? asset($patient->profile_photo)
-                    : null,
+                    ? asset('storage/' . $patient->profile_photo)
+                    : '',
             ],
+
 
         ];
 
@@ -141,8 +142,8 @@ class ProfileApiController extends Controller
                 ],
                 'file_upload' => [
                     'profile_photo' => $patient->profile_photo
-                        ? asset($patient->profile_photo)
-                        : null,
+                        ?  asset('storage/' . $patient->profile_photo)
+                        : '',
                 ],
             ];
 

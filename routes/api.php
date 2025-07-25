@@ -61,6 +61,9 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::get('profile/verification-status', [DoctorUserApiController::class, 'checkVerificationStatus']); // Check verification
 
     Route::get('profile/details', [DoctorProfileApiController::class, 'profileDetails']); // Get profile
+    Route::get('medical/details', [DoctorProfileApiController::class, 'medicalDetails']); // Get profile
+    Route::get('financial/details', [DoctorProfileApiController::class, 'financialDetails']); // Get profile
+
     Route::post('profile/update', [DoctorProfileApiController::class, 'updateProfileDetails']); // Update profile
     Route::post('medical/update', [DoctorProfileApiController::class, 'medicalDataUpdate']); // Update medical info
     Route::post('financial/update', [DoctorProfileApiController::class, 'financialUpdate']); // Update financial info

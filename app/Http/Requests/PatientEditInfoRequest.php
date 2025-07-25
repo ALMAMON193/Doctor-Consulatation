@@ -42,14 +42,14 @@ class PatientEditInfoRequest extends FormRequest
             ],
 
             'gender'      => ['required', 'in:male,female,other'],
-            'mother_name' => ['required', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
 
             // ── Address Info ─────────────────────────────
             'zipcode'      => ['required', 'string', 'max:10'],
-            'house_number' => ['required', 'string', 'max:255'],
-            'road'         => ['required', 'string', 'max:255'],
-            'neighborhood' => ['required', 'string', 'max:255'],
-            'complement'   => ['required', 'string', 'max:255'],
+            'house_number' => ['nullable', 'string', 'max:255'],
+            'road'         => ['nullable', 'string', 'max:255'],
+            'neighborhood' => ['nullable', 'string', 'max:255'],
+            'complement'   => ['nullable', 'string', 'max:255'],
             'city'         => ['required', 'string', 'max:255'],
             'state'        => ['required', 'string', 'max:255'],
 

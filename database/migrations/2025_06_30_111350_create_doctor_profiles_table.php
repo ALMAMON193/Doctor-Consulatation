@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('account_type')->nullable();
             $table->string('account_number')->nullable();
             $table->string('dv')->nullable();
+            $table->string('current_account_number')->nullable();
+            $table->string('current_dv')->nullable();
             $table->string('crm')->unique()->nullable();
             $table->string('uf')->nullable();
             $table->decimal('consultation_fee', 10, 2)->default(0);

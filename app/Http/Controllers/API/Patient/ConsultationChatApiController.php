@@ -7,7 +7,6 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
 use App\Http\Resources\ChatMessageResource;
-use App\Models\Consultation;
 use App\Models\Message;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -114,7 +113,7 @@ class ConsultationChatApiController extends Controller
             Log::info('Message broadcasted', ['message_id' => $chat->id]);
 
             return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Failed to send message', [
                 'error' => $e->getMessage(),
                 'sender_type' => $request->sender_type,

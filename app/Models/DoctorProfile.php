@@ -25,6 +25,8 @@ class DoctorProfile extends Model
         'account_type',
         'account_number',
         'dv',
+        'current_account_number',
+        'current_dv',
         'crm',
         'uf',
         'consultation_fee',

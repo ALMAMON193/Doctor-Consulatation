@@ -23,14 +23,14 @@ class PatientCreateAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_of_birth' => ['required', 'date_format:Y-m-d'],
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
             'cpf' => ['required', 'unique:patients'],
             'gender' => ['required', 'in:male,female,other'],
-            'mother_name' => ['required', 'string', 'max:255'],
+            'mother_name' => ['nullable', 'string', 'max:255'],
             'zipcode' => ['required', 'string', 'max:10'],
-            'house_number' => ['required', 'string', 'max:10'],
-            'road' => ['required', 'string', 'max:255'],
-            'neighborhood' => ['required', 'string', 'max:255'],
+            'house_number' => ['nullable', 'string', 'max:10'],
+            'road' => ['nullable', 'string', 'max:255'],
+            'neighborhood' => ['nullable', 'string', 'max:255'],
             'complement' => ['nullable', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
