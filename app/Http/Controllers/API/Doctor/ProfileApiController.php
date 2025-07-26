@@ -281,6 +281,16 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Sorry, something went wrong while updating medical information.'), [], 500);
         }
     }
+    //fetch Specialization record
+    public function fetchSpecializations()
+    {
+        $specializations = DoctorProfile::whereNotNull('specialization')
+//            ->where('verification_status', 'verified')
+            ->distinct()
+            ->pluck('specialization');
+
+        return $this->sendResponse($specializations, __('Specializations retrieved successfully.'));
+    }
 
     /**
      * Retrieve financial details for the authenticated doctor.

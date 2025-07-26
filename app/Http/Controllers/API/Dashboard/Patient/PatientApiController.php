@@ -44,7 +44,6 @@ class PatientApiController extends Controller
         return $this->sendResponse($apiResponse, __('Patient list fetched successfully.'));
     }
 
-
     private function getPatientAnalytics(): array
     {
         $allPatients = User::where('user_type', 'patient')->count();

@@ -65,6 +65,7 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::get('financial/details', [DoctorProfileApiController::class, 'financialDetails']); // Get profile
 
     Route::post('profile/update', [DoctorProfileApiController::class, 'updateProfileDetails']); // Update profile
+    Route::get('specializations', [DoctorProfileApiController::class, 'fetchSpecializations']); // Update profile
     Route::post('medical/update', [DoctorProfileApiController::class, 'medicalDataUpdate']); // Update medical info
     Route::post('financial/update', [DoctorProfileApiController::class, 'financialUpdate']); // Update financial info
 
