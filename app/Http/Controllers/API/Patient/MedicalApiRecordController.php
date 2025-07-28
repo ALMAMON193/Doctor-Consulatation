@@ -24,26 +24,21 @@ class MedicalApiRecordController extends Controller
     public function index(): JsonResponse
     {
         $user = auth('sanctum')->user();
-
         if (!$user) {
             return $this->sendError('User not found', [], 404);
         }
-
         $patient = Patient::where('user_id', $user->id)
             ->with('user', 'patientMembers')
             ->first();
-
         if (!$patient) {
             return $this->sendError('Patient profile not found', [], 404);
         }
-
         $memberIds = $patient->patientMembers->pluck('id');
 
         $records = PatientMedicalRecord::where('patient_id', $patient->id)
             ->orWhereIn('patient_member_id', $memberIds)
             ->latest()
             ->get();
-
         $apiResponse = $records->map(function ($record) use ($patient) {
             if ($record->patient_member_id) {
                 $member = PatientMember::find($record->patient_member_id);
@@ -68,9 +63,9 @@ class MedicalApiRecordController extends Controller
 
         return $this->sendResponse($apiResponse, 'Medical records retrieved successfully');
     }
-
     /**
      * Store a new medical record
+     * @throws Throwable
      */
     public function storeMedicalRecord(MedicalRecordStoreRequest $request): JsonResponse
     {
@@ -113,7 +108,7 @@ class MedicalApiRecordController extends Controller
                 'id' => $record->id,
                 'record_type' => $record->record_type,
                 'record_date' => $record->record_date,
-                'file_path' => $record->file_path ? asset($record->file_path) : null,
+                'file_path' => $record->file_path ? asset('storage/' . $record->file_path) : '',
                 'patient_member_id' => $record->patient_member_id,
                 'patient_id' => $record->patient_id,
             ], 'Medical record added successfully');
@@ -122,9 +117,9 @@ class MedicalApiRecordController extends Controller
             return $this->sendError('Failed to add medical record', ['error' => $e->getMessage()], 500);
         }
     }
-
     /**
      * Update a medical record
+     * @throws Throwable
      */
     public function updateMedicalRecord(MedicalRecordUpdateRequest $request, $id): JsonResponse
     {
@@ -154,12 +149,9 @@ class MedicalApiRecordController extends Controller
                 if ($record->file_path) {
                     Helper::fileDelete($record->file_path);
                 }
-
                 $data['file_path'] = Helper::fileUpload($request->file('file_path'), 'patient/medical_records');
             }
-
             $record->update($data);
-
             DB::commit();
 
             return $this->sendResponse($record, 'Medical record updated successfully');
@@ -168,38 +160,30 @@ class MedicalApiRecordController extends Controller
             return $this->sendError('Failed to update medical record', ['error' => $e->getMessage()], 500);
         }
     }
-
     /**
      * Delete a medical record
+     * @throws Throwable
      */
     public function destroyMedicalRecord($id): JsonResponse
     {
         $user = auth('sanctum')->user();
-
         if (!$user) {
             return $this->sendError('User not found', [], 404);
         }
-
         DB::beginTransaction();
-
         try {
             $patient = Patient::where('user_id', $user->id)->firstOrFail();
-
             $record = PatientMedicalRecord::where(function ($query) use ($patient) {
                 $query->where('patient_id', $patient->id)
                     ->orWhereIn('patient_member_id', $patient->patientMembers->pluck('id'));
             })->find($id);
-
             if (!$record) {
                 return $this->sendError('Medical record not found', [], 404);
             }
-
             if ($record->file_path) {
                 Helper::fileDelete($record->file_path);
             }
-
             $record->delete();
-
             DB::commit();
 
             return $this->sendResponse([], 'Medical record deleted successfully');

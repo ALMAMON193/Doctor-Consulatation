@@ -11,57 +11,39 @@ class DoctorProfileSeeder extends Seeder
 {
     public function run(): void
     {
+        // Fetch specializations from DB
+        $specializations = DB::table('specializations')->pluck('name')->toArray();
+
+        // Guard clause: if no specializations found, warn and exit
+        if (empty($specializations)) {
+            $this->command->warn('No specializations found. Please run SpecializationSeeder first.');
+            return;
+        }
+
         $doctors = User::where('user_type', 'doctor')->get();
-        $specializations = [
-            'Allergy and Immunology',
-            'Anesthesiology',
-            'Cardiology',
-            'Dermatology',
-            'Emergency Medicine',
-            'Endocrinology',
-            'Family Medicine',
-            'Gastroenterology',
-            'Geriatrics',
-            'Hematology',
-            'Infectious Disease',
-            'Internal Medicine',
-            'Nephrology',
-            'Neurology',
-            'Neurosurgery',
-            'Obstetrics and Gynecology',
-            'Oncology',
-            'Ophthalmology',
-            'Orthopedic Surgery',
-            'Otolaryngology',
-            'Pathology',
-            'Pediatrics',
-            'Physical Medicine and Rehabilitation',
-            'Plastic Surgery',
-            'Psychiatry',
-            'Pulmonology',
-            'Radiology',
-            'Rheumatology',
-            'Surgery',
-            'Thoracic Surgery',
-            'Urology',
-            'Vascular Surgery',
-        ];
 
         foreach ($doctors as $doctor) {
             // Skip if profile already exists
             $profileExists = DB::table('doctor_profiles')->where('user_id', $doctor->id)->exists();
             if ($profileExists) continue;
 
+            // Pick 1–3 random specializations
+            $randomSpecializations = collect($specializations)
+                ->random(rand(1, min(3, count($specializations))))
+                ->values()
+                ->all();
+
             // Insert into doctor_profiles
             DB::table('doctor_profiles')->insert([
                 'user_id'                     => $doctor->id,
-                'additional_medical_record_number' => Str::random(10),
-                'specialization' => $specializations[array_rand($specializations)],
+                'specialization'             => json_encode($randomSpecializations),
                 'cpf_bank'                   => '12345678900',
                 'bank_name'                  => 'Health Bank',
                 'account_type'               => 'Savings',
                 'account_number'             => '987654321',
                 'dv'                         => '01',
+                'current_account_number'             => '987654321',
+                'current_dv'                         => '01',
                 'crm'                        => 'CRM' . str_pad($doctor->id, 5, '0', STR_PAD_LEFT),
                 'uf'                         => 'SP',
                 'consultation_fee'           => rand(300 ,500),
@@ -69,20 +51,22 @@ class DoctorProfileSeeder extends Seeder
                 'company_income'             => rand(5000, 20000),
                 'company_phone'              => '0123456789',
                 'company_name'               => 'MediaCenter ' . $doctor->id,
-                'address_zipcode'            => '12345-678',
-                'address_number'             => '12A',
-                'address_street'             => 'Medical Street',
-                'address_neighborhood'       => 'Doctor Zone',
-                'address_city'               => 'Dhaka',
-                'address_state'              => 'BD',
-                'address_complement'         => 'Block B',
+                'zipcode'                    => '12345-678',
+                'address'                    => 'Dhaka Bangladesh',
+                'road_number'                => '12A',
+                'house_number'               => '12A',
+                'neighborhood'               => 'Doctor Zone',
+                'city'                       => 'Dhaka',
+                'state'                      => 'BD',
+                'complement'                 => 'Block B',
                 'personal_name'              => $doctor->name,
                 'date_of_birth'              => now()->subYears(rand(30, 50)),
                 'cpf_personal'               => 'CPF-PERSONAL-' . $doctor->id . '-' . Str::random(6),
                 'email'                      => $doctor->email,
                 'phone_number'               => $doctor->phone_number,
-                'video_path'                 => 'null',
-                'profile_picture'            => 'null',
+                'video_path'                 => null,
+                'profile_picture'            => null,
+                'bio'                        => Str::random(200),
                 'verification_status'        => 'pending',
                 'verification_rejection_reason' => null,
                 'is_active'                  => true,
@@ -111,7 +95,7 @@ class DoctorProfileSeeder extends Seeder
                 DB::table('user_personal_details')->insert([
                     'user_id'      => $doctor->id,
                     'date_of_birth'=> now()->subYears(rand(30, 50)),
-                    'cpf'          => 'CPF-' . $doctor->id . '-' . Str::random(6),  // Unique CPF here
+                    'cpf'          => 'CPF-' . $doctor->id . '-' . Str::random(6),
                     'gender'       => ['male', 'female', 'other'][array_rand(['male', 'female', 'other'])],
                     'account_type' => ['individual', 'legalEntity'][array_rand(['individual', 'legalEntity'])],
                     'created_at'   => now(),

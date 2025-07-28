@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Consultation;
+use App\Models\Specialization;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,6 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('patient_id')->nullable();
             $table->unsignedBigInteger('doctor_profile_id');
             $table->unsignedBigInteger('patient_member_id')->nullable();
+            $table->foreignIdFor(Specialization::class)->constrained();
             $table->decimal('fee_amount', 8, 2);
             $table->string('coupon_code')->nullable();
             $table->decimal('discount_amount', 8, 2)->default(0.00);
@@ -24,7 +27,7 @@ return new class extends Migration
             $table->integer('pain_level')->nullable()->default(0);
             $table->date('consultation_date')->nullable();
             $table->enum('payment_status', ['pending', 'paid', 'completed', 'cancelled'])->default('pending');
-            $table->enum('consultation_status', ['pending', 'completed', 'cancelled'])->default('pending');
+            $table->enum('consultation_status', ['pending', 'completed', 'cancelled','monitoring'])->default('pending');
             $table->timestamps();
 
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');

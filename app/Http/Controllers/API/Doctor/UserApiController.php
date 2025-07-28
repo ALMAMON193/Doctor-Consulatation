@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\API\Doctor;
 
+use Throwable;
 use Exception;
 use App\Helpers\Helper;
 use App\Models\UserAddress;
 use App\Traits\ApiResponse;
 use App\Models\DoctorProfile;
+use App\Models\Specialization;
 use App\Models\UserPersonalDetail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +20,12 @@ use App\Http\Requests\MedicalInfoVerifyRequest;
 class UserApiController extends Controller
 {
     use ApiResponse;
-
     /**
      * Store personal and account information for the authenticated doctor.
      *
      * @param CreateProfileRequest $request
      * @return JsonResponse
+     * @throws Throwable
      */
     public function createProfile(CreateProfileRequest $request): JsonResponse
     {
@@ -89,7 +91,6 @@ class UserApiController extends Controller
             return $this->sendError('Profile creation failed'.$e->getMessage(), [], 500);
         }
     }
-
     /**
      * Create or update doctor medical info for verification.
      *
@@ -103,28 +104,21 @@ class UserApiController extends Controller
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError('Only doctors may verify medical information', [], 403);
         }
-
         try {
             $validatedData = array_filter($request->validated(), fn($value) => !is_null($value));
-
             $doctorProfile = DoctorProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 $validatedData
             );
-
             if ($request->hasFile('video_path')) {
                 $videoPath = Helper::fileUpload($request->file('video_path'), 'doctor/presentation-video');
                 $doctorProfile->update(['video_path' => $videoPath]);
             }
-
             // Prepare API response data array
             $apiResponse = [
-                'user_id' => $user->id,
                 'medical_info' => $doctorProfile,
             ];
-
             $message = $doctorProfile->wasRecentlyCreated ? 'Medical info created successfully' : 'Medical info updated successfully';
-
             return $this->sendResponse($apiResponse, $message);
         } catch (Exception $e) {
             Log::error('MedicalInfoVerify Error: ' . $e->getMessage());
@@ -144,42 +138,32 @@ class UserApiController extends Controller
         if (!$user) {
             return $this->sendError('User not authenticated', [], 401);
         }
-
         // Fetch doctor's profile
         $profile = DoctorProfile::where('user_id', $user->id)->first();
         if (!$profile) {
             return $this->sendError('Profile not found', [], 404);
         }
-
         // List of required fields and their human-friendly labels
         $labels = [
-            'additional_medical_record_number' => 'Additional Medical Record Number',
-            'specialization'                   => 'Medical Specialization',
-            'cpf_bank'                         => 'Bank CPF',
-            'bank_name'                        => 'Bank Name',
-            'account_type'                     => 'Account Type',
-            'account_number'                   => 'Account Number',
-            'dv'                               => 'Verification Digit',
-            'crm'                              => 'CRM Number',
-            'uf'                               => 'State Code (UF)',
-            'monthly_income'                   => 'Monthly Income',
-            'company_income'                   => 'Company Income',
-            'company_phone'                    => 'Company Phone Number',
-            'company_name'                     => 'Company Name',
-            'address_zipcode'                  => 'Address Zipcode',
-            'address_number'                   => 'Address Number',
-            'address_street'                   => 'Address Street',
-            'address_neighborhood'             => 'Address Neighborhood',
-            'address_city'                     => 'Address City',
-            'address_state'                    => 'Address State',
-            'address_complement'               => 'Address Complement',
-            'personal_name'                    => 'Personal Name',
-            'date_of_birth'                    => 'Date of Birth',
-            'cpf_personal'                     => 'Personal CPF',
-            'email'                            => 'Email Address',
-            'phone_number'                     => 'Phone Number',
+            'specialization' => 'Medical Specialization',
+            'cpf_bank' => 'Bank CPF',
+            'bank_name' => 'Bank Name',
+            'account_type' => 'Account Type',
+            'account_number' => 'Account Number',
+            'dv' => 'Verification Digit',
+            'crm' => 'CRM Number',
+            'current_account_number' => 'Current Account Number',
+            'current_dv' => 'Current DV',
+            'uf' => 'State Code (UF)',
+            'zipcode' => 'Address Zipcode',
+            'address' => 'Address',
+            'house_number' => 'House Number',
+            'road_number' => 'Road Number',
+            'neighborhood' => 'Neighborhood',
+            'city' => 'City',
+            'state' => 'State',
+            'complement' => 'Complement',
         ];
-
         // Build list of missing fields
         $missing = collect($labels)
             ->filter(fn($label, $field) => is_null($profile->{$field}))
@@ -189,19 +173,35 @@ class UserApiController extends Controller
 
         // Determine overall verification status
         $verificationStatus = match (true) {
-            $profile->verification_status === 'approved' => 'Verified',
+            $profile->verification_status === 'verified' => 'Verified',
             $missing                                      => 'Unverified',
             default                                       => 'Pending',
         };
-
         // create response data
         $apiResponse = [
             'user_id'             => $user->id,
             'user_name'           => $user->name,
-            'avatar'              => $user->avatar ? asset($user->avatar) : '',
+            'profile_picture' => ($user->doctorProfile && !empty($user->doctorProfile->profile_picture) && $user->doctorProfile->profile_picture !== 'null')
+                ? asset('storage/' . $user->doctorProfile->profile_picture)
+                : '',
             'verification_status' => $verificationStatus,
             $missing ? 'pending' : 'done' => $missing ?: [],
         ];
         return $this->sendResponse($apiResponse, 'Verification status retrieved successfully');
+    }
+    //get all specialization
+    public function specializations(){
+        $user = auth('sanctum')->user();
+        // Ensure user is logged in
+        if (!$user) {
+            return $this->sendError('User not authenticated', [], 401);
+        }
+        try {
+            $specializations = Specialization::select('id', 'name')->get();
+            return $this->sendResponse ($specializations,__('Fetch All Specialization.'));
+        }catch (Exception $e)
+        {
+            return $this->sendError ("Something Went To Wrong");
+        }
     }
 }

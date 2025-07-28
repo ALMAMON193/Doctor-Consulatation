@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\Dashboard\Consultation\ConsultationApiController;
+use App\Http\Controllers\API\Doctor\PatientHistoryController;
 use App\Http\Controllers\API\Patient\HomeApiController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -65,7 +66,6 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::get('financial/details', [DoctorProfileApiController::class, 'financialDetails']); // Get profile
 
     Route::post('profile/update', [DoctorProfileApiController::class, 'updateProfileDetails']); // Update profile
-    Route::get('specializations', [DoctorProfileApiController::class, 'fetchSpecializations']); // Update profile
     Route::post('medical/update', [DoctorProfileApiController::class, 'medicalDataUpdate']); // Update medical info
     Route::post('financial/update', [DoctorProfileApiController::class, 'financialUpdate']); // Update financial info
 
@@ -73,6 +73,13 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::post('coupons/create', [CouponApiController::class, 'store']); // Create coupon
     Route::post('coupons/update/{id}', [CouponApiController::class, 'update']); // Update coupon
     Route::delete('coupons/delete/{id}', [CouponApiController::class, 'destroy']); // Delete coupon
+    //available consultation for admin or patient member
+    Route::get('available/consultation',[DoctorProfileApiController::class,'activeConsultation']);   //available consultation for admin or patient member
+    Route::get('consultation/details/{id}',[DoctorProfileApiController::class,'patientDetails']);   //Patient Details
+
+    //patient History
+    Route::get('patient/history',[PatientHistoryController::class,'patientHistory']);   //Patient History
+
 });
 
 // Patient routes (profile, members, consultations, ratings)
@@ -111,11 +118,10 @@ Route::prefix('patient/medical-record')->middleware('patient', 'auth:sanctum')->
     Route::post('update/{id}', [MedicalApiRecordController::class, 'updateMedicalRecord']); // Update medical record
     Route::delete('delete/{id}', [MedicalApiRecordController::class, 'destroyMedicalRecord']); // Delete medical record
 });
+// All Specializations
+Route::get('specializations',[DoctorUserApiController::class,'specializations']);   //all specializations
 //patient home records
 Route::prefix('patient/home')->middleware(['patient', 'auth:sanctum'])->group(function () {
     Route::get('/', [HomeApiController::class, 'index']);
 });
 Broadcast::routes(['middleware' => ['auth:sanctum']]);
-
-
-

@@ -6,19 +6,20 @@ use App\Models\User;
 use App\Models\Rating;
 use App\Models\Consultation;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HigherOrderCollectionProxy;
 
 /**
  * @method static firstOrCreate(array $array)
  * @method static where(string $string, $id)
  * @method static whereNotNull(string $string)
  * @method static findOrFail(mixed $doctor_profile_id)
+ * @property HigherOrderCollectionProxy|mixed $specialization_id
  */
 class DoctorProfile extends Model
 {
 
     protected $fillable = [
         'user_id',
-        'additional_medical_record_number',
         'specialization',
         'cpf_bank',
         'bank_name',
@@ -35,13 +36,15 @@ class DoctorProfile extends Model
         'company_income',
         'company_phone',
         'company_name',
-        'address_zipcode',
-        'address_number',
-        'address_street',
-        'address_neighborhood',
-        'address_city',
-        'address_state',
-        'address_complement',
+        'zipcode',
+        'address',
+        'house_number',
+        'road_number',
+        'street',
+        'neighborhood',
+        'city',
+        'state',
+        'complement',
         'personal_name',
         'date_of_birth',
         'cpf_personal',
@@ -50,9 +53,12 @@ class DoctorProfile extends Model
         'video_path',
         'profile_picture',
         'verification_status',
-        'verification_rejection_reason'
+        'verification_rejection_reason',
+        'bio'
     ];
-
+    protected $casts = [
+        'specialization' => 'array',
+    ];
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
@@ -62,14 +68,12 @@ class DoctorProfile extends Model
     {
         return $this->hasMany(Consultation::class)->where('consultation_status', 'completed');
     }
-    public function consultations()
+    public function consultations(): \Illuminate\Database\Eloquent\Relations\HasMany|DoctorProfile
     {
         return $this->hasMany(Consultation::class, 'doctor_profile_id');
     }
-
     public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Rating::class, 'doctor_profile_id');
     }
-
 }

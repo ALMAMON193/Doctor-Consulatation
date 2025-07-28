@@ -19,7 +19,7 @@ class DoctorFinancialRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return auth('sanctum')->user() && auth('sanctum')->user()->user_type === 'doctor';
     }
@@ -29,7 +29,7 @@ class DoctorFinancialRequest extends FormRequest
      *
      * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             'cpf_bank'       => 'required|string|max:20',

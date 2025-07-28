@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('doctor_profiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
-            $table->string('additional_medical_record_number')->nullable();
-            $table->string('specialization')->nullable();
+            $table->json('specialization')->nullable();
             $table->string('cpf_bank')->nullable();
             $table->string('bank_name')->nullable();
             $table->string('account_type')->nullable();
@@ -31,13 +30,14 @@ return new class extends Migration
             $table->decimal('company_income', 10, 2)->nullable();
             $table->string('company_phone')->nullable();
             $table->string('company_name')->nullable();
-            $table->string('address_zipcode')->nullable();
-            $table->string('address_number')->nullable();
-            $table->string('address_street')->nullable();
-            $table->string('address_neighborhood')->nullable();
-            $table->string('address_city')->nullable();
-            $table->string('address_state')->nullable();
-            $table->string('address_complement')->nullable();
+            $table->string('zipcode')->nullable();
+            $table->string ('address')->nullable ();
+            $table->string('house_number')->nullable();
+            $table->string('road_number')->nullable();
+            $table->string('neighborhood')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+            $table->string('complement')->nullable();
             $table->string('personal_name')->nullable();
             $table->date('date_of_birth')->nullable();
             $table->string('cpf_personal')->nullable();
@@ -45,6 +45,7 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->string('video_path')->nullable();
             $table->string('profile_picture')->nullable();
+            $table->text('bio')->nullable();
             $table->enum('subscription_status', ['basic', 'pro','no_subscription'])->default('no_subscription');
             $table->enum('verification_status', ['pending', 'verified', 'rejected','unverified'])->default('pending');
             $table->text('verification_rejection_reason')->nullable();

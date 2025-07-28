@@ -26,7 +26,7 @@ class PaymentSuccessResource extends JsonResource
                 'id'                => $patient->id,
                 'name'              => $patient->name ?? ($patient->user->name ?? ''),
                 'type'              => 'patient',
-                'profile_picture'   => $this->normalizeProfilePicture($patient->profile_photo ?? ''),
+                'profile_picture'   => $this->normalizeProfilePicture('storage/' .$patient->profile_photo ?? ''),
             ];
         } elseif ($this->patient_member_id && $this->patientMember) {
             $member = $this->patientMember;
@@ -34,7 +34,7 @@ class PaymentSuccessResource extends JsonResource
                 'id'                => $member->id,
                 'name'              => $member->name ?? '',
                 'type'              => 'patient_member',
-                'profile_picture'   => $this->normalizeProfilePicture($member->profile_photo ?? ''),
+                'profile_picture'   => $this->normalizeProfilePicture('storage/' .$member->profile_photo ?? ''),
             ];
         }
 
@@ -42,7 +42,7 @@ class PaymentSuccessResource extends JsonResource
             'doctorProfile' => [
                 'id'                 => $doctor->id,
                 'name'               => $doctor->name ?? ($doctor->user->name ?? ''),
-                'profile_picture'    => $this->normalizeProfilePicture($doctor->profile_picture ?? ''),
+                'profile_picture'    => $this->normalizeProfilePicture('storage/' .$doctor->profile_picture ?? ''),
                 'type'               => 'doctor_profile',
                 'consultation_time'  => $doctor->consultation_time,
                 'paid_by'            => $paidBy,

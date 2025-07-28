@@ -5,7 +5,8 @@ namespace App\Http\Controllers\API\Patient;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentSuccessResource;
 use App\Traits\ApiResponse;
-use App\Models\{Consultation, Coupon, CouponUser, DoctorProfile, Payment};
+use App\Models\{Consultation, Coupon, CouponUser, DoctorProfile, PatientMember, Payment};
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,19 +15,15 @@ use Stripe\Checkout\Session;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Stripe;
 use Stripe\Webhook;
-use UnexpectedValueException;
 use App\Services\ConsultationService;
-use Exception;
 
 class ConsultationBookingController extends Controller
 {
     use ApiResponse;
-
     public function __construct()
     {
         Stripe::setApiKey(config('services.stripe.secret'));
     }
-
     public function book(Request $request): JsonResponse
     {
         try {
@@ -34,38 +31,48 @@ class ConsultationBookingController extends Controller
                 'patient_id'         => 'nullable|exists:patients,id',
                 'patient_member_id'  => 'nullable|exists:patient_members,id',
                 'doctor_profile_id'  => 'required|exists:doctor_profiles,id',
+                'specialization_id'  => 'required|exists:specializations,id',
                 'coupon_code'        => 'nullable|string',
                 'complaint'          => 'nullable|string|max:2000',
                 'pain_level'         => 'nullable|integer|between:0,10',
-                'consultation_date'  => 'nullable|date',
+                'consultation_date'  => 'nullable|date|after_or_equal:today',
                 'email'              => 'nullable|email',
                 'payment_status'     => 'nullable|in:pending,paid,completed,cancelled',
             ]);
-
+            $authUser = auth ()->user ();
+            // If patient_id is present, make sure it belongs to the authenticated user
+            if (!empty($validated['patient_id']) && $authUser->patient->id !== $validated['patient_id']) {
+                return $this->sendError(__('Unauthorized access to patient record.'));
+            }
+            // If patient_member_id is present, ensure it belongs to the patient's family
+            if (!empty($validated['patient_member_id'])) {
+                $member = PatientMember::find($validated['patient_member_id']);
+                // Check if member belongs to this patient's ID
+                if ($member->patient_id !== $authUser->patient->id) {
+                    return $this->sendError(__('Unauthorized access to patient member record.'));
+                }
+            }
             if (empty($validated['patient_id']) && empty($validated['patient_member_id'])) {
                 return response()->json(['error' => 'Patient or Patient Member is required'], 422);
             }
-
             $doctor = DoctorProfile::findOrFail($validated['doctor_profile_id']);
             if (!$doctor) {
                 return response()->json(['error' => 'Doctor not found'], 422);
             }
-
             $feeDetails = ConsultationService::applyCoupon(
                 $doctor,
                 $validated['coupon_code'] ?? null,
                 $validated['patient_id'] ?? null,
                 $validated['patient_member_id'] ?? null
             );
-
             if ($feeDetails['error']) {
                 return response()->json(['error' => $feeDetails['error']], 422);
             }
-
             $consultation = Consultation::create([
                 'patient_id'         => $validated['patient_id'] ?? null,
                 'patient_member_id'  => $validated['patient_member_id'] ?? null,
                 'doctor_profile_id'  => $doctor->id,
+                'specialization_id'  => $validated['specialization_id'],
                 'fee_amount'         => $feeDetails['fee'],
                 'discount_amount'    => $feeDetails['discount'],
                 'final_amount'       => $feeDetails['final'],
@@ -75,14 +82,12 @@ class ConsultationBookingController extends Controller
                 'consultation_date'  => $validated['consultation_date'] ?? now(),
                 'payment_status'     => $validated['payment_status'] ?? 'pending',
             ]);
-
             $payment = Payment::create([
                 'consultation_id' => $consultation->id,
                 'amount'          => $feeDetails['final'],
                 'currency'        => 'usd',
                 'status'          => 'pending',
             ]);
-
             $productName = 'Consultation';
             if ($feeDetails['message']) {
                 $productName .= " ({$feeDetails['message']})";
@@ -114,46 +119,34 @@ class ConsultationBookingController extends Controller
 
         } catch (Exception $e) {
             Log::error('Booking Error: ' . $e->getMessage());
-            return $this->sendError(__('Something went wrong while booking consultation'));
+            return $this->sendError(__('booking_error', ['error' => $e->getMessage()]));
         }
     }
-
     public function handleWebhook(Request $request): JsonResponse
     {
         $payload = $request->getContent();
         $signature = $request->header('Stripe-Signature');
         $secret = config('services.stripe.webhook_secret');
-
         try {
             $event = \Stripe\Webhook::constructEvent($payload, $signature, $secret);
-
             $payment = null;
-
             switch ($event->type) {
-
                 case 'checkout.session.completed':
                     $sessionId = $event->data->object->id;
-
                     $payment = Payment::where('payment_intent_id', $sessionId)->first();
-
                     if (!$payment) {
                         Log::warning('Payment not found for session', ['session_id' => $sessionId]);
                         break;
                     }
-
                     if ($payment->status !== 'completed') {
-
                         $payment->update([
                             'status'  => 'completed',
                             'paid_at' => now(),
                         ]);
-
                         $consultation = Consultation::find($payment->consultation_id);
-
                         if ($consultation) {
                             // Mark consultation as paid
                             $consultation->update(['payment_status' => 'paid']);
-
                             // Update main patient's consultation count
                             if ($consultation->patient_id) {
                                 DB::table('patients')->where('id', $consultation->patient_id)->increment('consulted');
@@ -161,17 +154,14 @@ class ConsultationBookingController extends Controller
                         } else {
                             Log::warning('Consultation not found', ['consultation_id' => $payment->consultation_id]);
                         }
-
                     } else {
                         Log::info('Payment already completed', ['payment_id' => $payment->id]);
                     }
-
                     break;
                 case 'payment_intent.payment_failed':
                     Log::warning('Payment failed', ['session_id' => $event->data->object->id]);
                     break;
             }
-
             return $this->sendResponse(
                 $payment ? $payment->toArray() : [],
                 __('We have received your payment.')
@@ -183,12 +173,11 @@ class ConsultationBookingController extends Controller
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
             Log::error('Invalid signature: ' . $e->getMessage());
             return response()->json(['error' => 'Invalid signature'], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::error('Webhook error: ' . $e->getMessage());
             return response()->json(['error' => 'Webhook failed'], 500);
         }
     }
-
     public function success(Request $request): JsonResponse|PaymentSuccessResource
     {
         try {
@@ -209,14 +198,12 @@ class ConsultationBookingController extends Controller
                     'message' => __('Payment not found')
                 ], 404);
             }
-
             $consultation = Consultation::with([
                 'doctorProfile.user',
                 'patient',
                 'patientMember',
                 'patientMember.patient',
             ])->find($payment->consultation_id);
-
             if (!$consultation) {
                 return $this->sendError(__('Consultation not found'));
             }
@@ -232,7 +219,6 @@ class ConsultationBookingController extends Controller
             return $this->sendError(__('Something went wrong while payment success'));
         }
     }
-
     public function cancel(): JsonResponse
     {
         return $this->sendResponse([], __('Payment cancelled'));

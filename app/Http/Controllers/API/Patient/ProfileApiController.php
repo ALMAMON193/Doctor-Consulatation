@@ -8,6 +8,7 @@ use App\Http\Requests\AddMemberAccountRequest;
 use App\Http\Requests\EditMemberAccountRequest;
 use App\Http\Requests\PatientCreateAccountRequest;
 use App\Http\Requests\PatientEditInfoRequest;
+use App\Http\Resources\Doctor\Consultation\AvailableResource;
 use App\Models\DoctorProfile;
 use App\Models\Patient;
 use App\Models\PatientMember;
@@ -225,7 +226,6 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Something went wrong while updating profile details.' . $e->getMessage()), [], 500);
         }
     }
-
     public function accountDetails(): JsonResponse
     {
         $user = auth('sanctum')->user();
@@ -249,38 +249,33 @@ class ProfileApiController extends Controller
                 'id' => $patient->id,
                 'name' => $patient->user->name,
                 'relationship' => "Main Account",
-                'profile_photo' => $patient->profile_photo ? asset($patient->profile_photo) : '',
+                'profile_photo' => $patient->profile_photo ? asset('storage/' . $patient->profile_photo) : '',
             ],
             'family_members' => $patient->patientMembers->map(function ($member) {
                 return [
                     'id' => $member->id,
                     'name' => $member->name,
                     'relationship' => $member->relationship,
-                    'profile_photo' => $member->profile_photo ? asset($member->profile_photo) : '',
+                    'profile_photo' => $member->profile_photo ? asset( 'storage/' .$member->profile_photo) : '',
                 ];
             })->toArray(),
         ];
-
         return $this->sendResponse($apiResponse, __('Patient details retrieved successfully'));
     }
-
     //add member account
     public function addMemberAccount(AddMemberAccountRequest $request): JsonResponse
     {
         $user = auth('sanctum')->user();
-
         if (!$user) {
             return $this->sendError(__('User not found'), [], 404);
         }
         DB::beginTransaction();
-
         try {
             $patient = Patient::where('user_id', $user->id)->first();
 
             if (!$patient) {
                 return $this->sendError(__('Patient profile not found'), [], 404);
             }
-
             $data = $request->only([
                 'name',
                 'date_of_birth',
@@ -288,17 +283,12 @@ class ProfileApiController extends Controller
                 'cpf',
                 'gender',
             ]);
-
             if ($request->hasFile('profile_photo')) {
                 $data['profile_photo'] = Helper::fileUpload($request->file('profile_photo'), 'patient/member_photos');
             }
-
             $data['patient_id'] = $patient->id;
-
             $member = PatientMember::create($data);
-
             DB::commit();
-
             $response = [
                 'id' => $member->id,
                 'name' => $member->name,
@@ -306,42 +296,34 @@ class ProfileApiController extends Controller
                 'date_of_birth' => $member->date_of_birth,
                 'cpf' => $member->cpf,
                 'gender' => $member->gender,
-                'profile_photo' => $member->profile_photo ? asset($member->profile_photo) : null,
+                'profile_photo' => $member->profile_photo ? asset('storage/'.$member->profile_photo) : null,
             ];
-
             return $this->sendResponse($response, __('Member added successfully'));
         } catch (Throwable $e) {
             DB::rollBack();
             return $this->sendError(__('Failed to add member'), ['error' => $e->getMessage()], 500);
         }
     }
-
    //update member account
     public function updateMemberAccount(EditMemberAccountRequest $request, $id): JsonResponse
     {
         $user = auth('sanctum')->user();
-
         if (!$user) {
             return $this->sendError(__('User not found'), [], 404);
         }
-
         // 1. Load the patient for this user
         $patient = Patient::where('user_id', $user->id)->first();
         if (!$patient) {
             return $this->sendError(__('Patient profile not found'), [], 404);
         }
-
         // 2. Load the member that belongs to this patient
         $member = PatientMember::where('id', $id)
             ->where('patient_id', $patient->id)
             ->first();
-
         if (!$member) {
             return $this->sendError(__('Member not found'), [], 404);
         }
-
         DB::beginTransaction();
-
         try {
             // 3. Build update payload
             $data = $request->only([
@@ -350,7 +332,6 @@ class ProfileApiController extends Controller
                 'relationship',
                 'gender',
             ]);
-
             // 4. Handle new profile photo
             if ($request->hasFile('profile_photo')) {
                 if (!empty($member->profile_photo)) {
@@ -361,11 +342,9 @@ class ProfileApiController extends Controller
                     'patient/member_photos'
                 );
             }
-
             // 5. Update & commit
             $member->update($data);
             DB::commit();
-
             $apiResponse = [
                 'id' => $member->id,
                 'name' => $member->name,
@@ -373,7 +352,7 @@ class ProfileApiController extends Controller
                 'date_of_birth' => $member->date_of_birth,
                 'cpf' => $member->cpf,
                 'gender' => $member->gender,
-                'profile_photo' => $member->profile_photo ? asset($member->profile_photo) : null,
+                'profile_photo' => $member->profile_photo ? asset( 'storage/' .$member->profile_photo) : null,
             ];
 
             return $this->sendResponse($apiResponse, __('Member updated successfully'));

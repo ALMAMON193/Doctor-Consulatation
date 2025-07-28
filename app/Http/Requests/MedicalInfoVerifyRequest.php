@@ -8,18 +8,18 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class MedicalInfoVerifyRequest extends FormRequest
 {
-    public function authorize()
+    public function authorize(): bool
     {
         return auth('sanctum')->check();
     }
 
-    public function rules()
+    public function rules(): array
     {
         $user = auth('sanctum')->user();
         $doctorProfileId = $user ? DoctorProfile::where('user_id', $user->id)->first()?->id : null;
         return [
-            'additional_medical_record_number' => 'nullable|string|max:255',
-            'specialization' => 'required|string|max:255',
+            'specialization' => 'required|array|max:7',
+            'specialization.*' => 'string|exists:specializations,name',
             'cpf_bank' => 'required|string|max:255',
             'bank_name' => 'required|string|max:255',
             'account_type' => 'required|string|max:255',
@@ -31,32 +31,23 @@ class MedicalInfoVerifyRequest extends FormRequest
                 'max:255',
                 Rule::unique('doctor_profiles', 'crm')->ignore($doctorProfileId),
             ],
+            'current_account_number' => 'required|string|max:255',
+            'current_dv' => 'required|string|max:255',
             'uf' => 'required|string|max:2',
-            'monthly_income' => 'required|numeric|min:0',
-            'company_income' => 'required|numeric|min:0',
-            'company_phone' => 'required|string|max:255',
-            'company_name' => 'required|string|max:255',
-            'address_zipcode' => 'nullable|string|max:255',
-            'address_number' => 'nullable|string|max:255',
-            'address_street' => 'nullable|string|max:255',
-            'address_neighborhood' => 'nullable|string|max:255',
-            'address_city' => 'nullable|string|max:255',
-            'address_state' => 'nullable|string|max:255',
-            'address_complement' => 'nullable|string|max:255',
-            'personal_name' => 'nullable|string|max:255',
-            'date_of_birth' => 'nullable|date',
-            'cpf_personal' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone_number' => 'nullable|string|max:255',
-            'video_path' => 'nullable|file|mimes:mp4,mov,avi|max:102400', // Example: 100MB max
+            'zipcode' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'house_number' => 'nullable|string|max:255',
+            'road_number' => 'nullable|string|max:255',
+            'neighborhood' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'complement' => 'nullable|string|max:255',
         ];
     }
-    public function messages()
+    public function messages(): array
     {
         return [
-
             'crm.unique' => 'The CRM has already been taken by another doctor.',
-
         ];
     }
 }

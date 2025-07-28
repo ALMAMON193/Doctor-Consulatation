@@ -21,6 +21,7 @@ class Consultation extends Model
         'patient_id',
         'doctor_profile_id',
         'patient_member_id',
+        'specialization_id',
         'fee_amount',
         'coupon_code',
         'discount_amount',
@@ -46,6 +47,10 @@ class Consultation extends Model
     public function doctorProfile(): BelongsTo
     {
         return $this->belongsTo(DoctorProfile::class);
+    }
+    public function specialization(): BelongsTo
+    {
+        return $this->belongsTo(Specialization::class);
     }
 
     public function payment(): HasOne
