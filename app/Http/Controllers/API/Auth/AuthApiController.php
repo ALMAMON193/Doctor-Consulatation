@@ -85,6 +85,7 @@ class AuthApiController extends Controller
                 'user_type' => $user->user_type,
                 'is_verified' => $user->is_verified,
                 'verified_at' => $user->verified_at,
+                'profile_create' => $user->hasCompletedProfile(),
             ];
 
             return $this->sendResponse($apiResponse, 'Login successful', $token);
@@ -264,8 +265,6 @@ class AuthApiController extends Controller
                 'reset_password_token' => $token,
                 'reset_password_token_expire_at' => now()->addHour(),
             ]);
-
-
             $success = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -309,13 +308,6 @@ class AuthApiController extends Controller
                 'reset_password_token' => null,
                 'reset_password_token_expire_at' => null,
             ]);
-            Log::info('🔁 Reset Token Compare', [
-                'request_token' => trim($request->token),
-                'db_token' => $user->reset_password_token,
-                'expires_at' => $user->reset_password_token_expire_at,
-                'now' => now(),
-            ]);
-
             return $this->sendResponse([], 'Password reset successfully. Please login with your new password.');
         } catch (Exception $e) {
             Log::error('Failed to reset password: ' . $e->getMessage());

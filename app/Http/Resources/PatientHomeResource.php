@@ -83,8 +83,15 @@ class PatientHomeResource extends JsonResource
     protected function getAllSpecializations(): array
     {
         return DoctorProfile::whereNotNull('specialization')
-            ->distinct()
             ->pluck('specialization')
+            ->flatMap(function ($specialization) {
+                // decode json if stored as json string
+                $values = is_string($specialization) ? json_decode($specialization, true) : $specialization;
+                return (array) $values;
+            })
+            ->unique()
+            ->values()
             ->toArray();
     }
+
 }

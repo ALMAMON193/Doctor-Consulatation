@@ -37,7 +37,7 @@ class DoctorMedicalRequest extends FormRequest
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
         return [
             'crm.required' => __('CRM is required.'),

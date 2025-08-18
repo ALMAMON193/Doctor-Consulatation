@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Doctor\Consultation;
 
+use App\Models\Consultation;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -41,6 +42,8 @@ class AvailableResource extends JsonResource
             'amount' => intval($this->final_amount),
             'complaint' => $this->complaint,
             'specialization' => $this->specialization->name,
+            'patient_ratting' => 3.5,
+            'available_consultation'  => $this->availableConsultation(),
             'patient' => $this->patient ? [
                 'id' => $this->patient->id,
                 'name' => optional($this->patient->user)->name,
@@ -64,4 +67,14 @@ class AvailableResource extends JsonResource
             ],
         ];
     }
+
+    private function availableConsultation(): int
+    {
+        return Consultation::where('doctor_profile_id', $this->doctor_profile_id)
+            ->where('consultation_status', 'pending')
+            ->where('payment_status', 'paid')
+            ->whereDate('consultation_date', '>=', Carbon::today())
+            ->count();
+    }
+
 }

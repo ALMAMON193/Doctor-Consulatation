@@ -42,12 +42,15 @@ class MedicalInfoVerifyRequest extends FormRequest
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'complement' => 'nullable|string|max:255',
+            'video_path'         => 'nullable|file|mimes:mp4,avi,mov|max:1000240', // 1000MB max
         ];
     }
     public function messages(): array
     {
         return [
             'crm.unique' => 'The CRM has already been taken by another doctor.',
+            'video_path.mimes' => __('Video must be a file of type: mp4, avi, mov.'),
+            'video_path.max' => __('Video file size must not exceed 1 GB.'),
         ];
     }
 }

@@ -343,7 +343,6 @@ class ProfileApiController extends Controller
 
             // Log error for debugging
             Log::error($e->getMessage());
-
             return $this->sendError(__('Sorry, something went wrong while updating financial information.'), [], 500);
         }
     }
@@ -355,7 +354,6 @@ class ProfileApiController extends Controller
         }
         // Get the doctor's profile ID (assumes one-to-one relation from user to doctorProfile)
         $doctorProfileId = $user->doctorProfile->id ?? null;
-
         if (!$doctorProfileId) {
             return $this->sendError('Doctor profile not found', [], 404);
         }

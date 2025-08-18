@@ -119,7 +119,7 @@ class ConsultationBookingController extends Controller
 
         } catch (Exception $e) {
             Log::error('Booking Error: ' . $e->getMessage());
-            return $this->sendError(__('booking_error', ['error' => $e->getMessage()]));
+            return $this->sendError(__('Something Went to Wrong', ['error' => $e->getMessage()]));
         }
     }
     public function handleWebhook(Request $request): JsonResponse

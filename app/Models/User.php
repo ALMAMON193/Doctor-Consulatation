@@ -88,7 +88,19 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserPersonalDetail::class);
     }
-
-
-
+    //check user complete the profile
+    public function hasCompletedProfile(): bool
+    {
+        // Check if personal details are filled
+        $personal = $this->personalDetails;
+        if (!$personal || !$personal->date_of_birth || !$personal->cpf || !$personal->gender || !$personal->account_type) {
+            return false;
+        }
+        // Check if doctor profile exists and important fields are filled
+        $doctor = $this->doctorProfile;
+        if (!$doctor || !$doctor->company_name || !$doctor->monthly_income || !$doctor->company_phone || !$doctor->company_income) {
+            return false;
+        }
+        return true;
+    }
 }

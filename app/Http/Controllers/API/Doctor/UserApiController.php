@@ -119,7 +119,7 @@ class UserApiController extends Controller
                 'medical_info' => $doctorProfile,
             ];
             $message = $doctorProfile->wasRecentlyCreated ? 'Medical info created successfully' : 'Medical info updated successfully';
-            return $this->sendResponse($apiResponse, $message);
+            return $this->sendResponse([], $message);
         } catch (Exception $e) {
             Log::error('MedicalInfoVerify Error: ' . $e->getMessage());
             return $this->sendError('Medical info verification failed', [], 422);
@@ -134,61 +134,69 @@ class UserApiController extends Controller
     {
         $user = auth('sanctum')->user();
 
-        // Ensure user is logged in
         if (!$user) {
             return $this->sendError('User not authenticated', [], 401);
         }
-        // Fetch doctor's profile
+
         $profile = DoctorProfile::where('user_id', $user->id)->first();
         if (!$profile) {
             return $this->sendError('Profile not found', [], 404);
         }
-        // List of required fields and their human-friendly labels
-        $labels = [
-            'specialization' => 'Medical Specialization',
-            'cpf_bank' => 'Bank CPF',
-            'bank_name' => 'Bank Name',
-            'account_type' => 'Account Type',
-            'account_number' => 'Account Number',
-            'dv' => 'Verification Digit',
-            'crm' => 'CRM Number',
-            'current_account_number' => 'Current Account Number',
-            'current_dv' => 'Current DV',
-            'uf' => 'State Code (UF)',
-            'zipcode' => 'Address Zipcode',
-            'address' => 'Address',
-            'house_number' => 'House Number',
-            'road_number' => 'Road Number',
-            'neighborhood' => 'Neighborhood',
-            'city' => 'City',
-            'state' => 'State',
-            'complement' => 'Complement',
-        ];
-        // Build list of missing fields
-        $missing = collect($labels)
-            ->filter(fn($label, $field) => is_null($profile->{$field}))
-            ->map(fn($label) => "Please complete the {$label} field")
-            ->values()
-            ->all();
 
-        // Determine overall verification status
+        $labels = [
+            'specialization'        => 'Medical Specialization',
+            'cpf_bank'              => 'Bank CPF',
+            'bank_name'             => 'Bank Name',
+            'account_type'          => 'Account Type',
+            'account_number'        => 'Account Number',
+            'dv'                    => 'Verification Digit',
+            'crm'                   => 'CRM Number',
+            'current_account_number'=> 'Current Account Number',
+            'current_dv'            => 'Current DV',
+            'uf'                    => 'State Code (UF)',
+            'zipcode'               => 'Address Zipcode',
+            'address'               => 'Address',
+            'house_number'          => 'House Number',
+            'road_number'           => 'Road Number',
+            'neighborhood'          => 'Neighborhood',
+            'city'                  => 'City',
+            'state'                 => 'State',
+            'complement'            => 'Complement',
+        ];
+
+        $pending = [];
+        $done    = [];
+
+        foreach ($labels as $field => $label) {
+            if (empty($profile->{$field})) {
+                $pending[] = "Please complete the {$label} field";
+            } else {
+                $done[] = $label;
+            }
+        }
+
+        // Determine verification status
         $verificationStatus = match (true) {
             $profile->verification_status === 'verified' => 'Verified',
-            $missing                                      => 'Unverified',
-            default                                       => 'Pending',
+            count($pending) > 0                          => 'Unverified',
+            default                                      => 'Pending',
         };
-        // create response data
+
+        // Build response
         $apiResponse = [
             'user_id'             => $user->id,
             'user_name'           => $user->name,
-            'profile_picture' => ($user->doctorProfile && !empty($user->doctorProfile->profile_picture) && $user->doctorProfile->profile_picture !== 'null')
+            'profile_picture'     => ($user->doctorProfile && !empty($user->doctorProfile->profile_picture) && $user->doctorProfile->profile_picture !== 'null')
                 ? asset('storage/' . $user->doctorProfile->profile_picture)
                 : '',
             'verification_status' => $verificationStatus,
-            $missing ? 'pending' : 'done' => $missing ?: [],
+            'pending'             => $pending,
+            'done'                => $done,
         ];
+
         return $this->sendResponse($apiResponse, 'Verification status retrieved successfully');
     }
+
     //get all specialization
     public function specializations(){
         $user = auth('sanctum')->user();

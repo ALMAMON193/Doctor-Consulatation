@@ -24,7 +24,6 @@ class PatientHistoryController extends Controller
         // Fetch consultations where payment_status = paid and belongs to this doctor
         $consultations = Consultation::with(['patient', 'patientMember'])
             ->where('doctor_profile_id', $doctorProfileId)
-            ->where('consultation_status', 'pending')
             ->get();
         return $this->sendResponse(
             AvailableResource::collection($consultations),

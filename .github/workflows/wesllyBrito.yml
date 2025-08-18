@@ -15,11 +15,9 @@ jobs:
         with:
           fetch-depth: 2
 
-
-
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ftp.softvencefsd.xyz
-          username: weslleybrito@weslley-brito.softvencefsd.xyz
-          password: "Srpi#UFfxB2%Oy#P"
+          server: 31.97.86.127
+          username: backend-ftp
+          password: "P30iKNFuvMtZsjlWqRYs"

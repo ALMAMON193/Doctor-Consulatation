@@ -21,9 +21,7 @@ class PatientApiController extends Controller
     {
         $perPage = $request->input('per_page', 10);
         $statusFilter = $request->input('status');
-
         $analytics = $this->getPatientAnalytics();
-
         $patients = User::with('patient')
             ->where('user_type', 'patient')
             ->when($statusFilter, function ($q) use ($statusFilter) {
