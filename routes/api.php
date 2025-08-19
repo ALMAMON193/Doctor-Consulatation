@@ -6,7 +6,6 @@ use App\Http\Controllers\API\Patient\HomeApiController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\AuthApiController;
-use App\Http\Controllers\API\Doctor\CouponApiController;
 use App\Http\Controllers\API\Doctor\UserApiController as DoctorUserApiController;
 use App\Http\Controllers\API\Doctor\ProfileApiController as DoctorProfileApiController;
 use App\Http\Controllers\API\Dashboard\Doctor\DoctorApiController;
@@ -54,6 +53,12 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('consultation-details/{id}', [ConsultationApiController::class, 'consultationDetails']); // Consultation details
     Route::post('consultation-create', [ConsultationApiController::class, 'consultationCreate']);
 });
+// Admin Coupon management routes
+Route::prefix('admin')->middleware('admin')->group(function () {
+    Route::get('coupons', [\App\Http\Controllers\API\Dashboard\Coupon\CouponController::class, 'index']); // List coupon
+    Route::post('coupon-create', [\App\Http\Controllers\API\Dashboard\Coupon\CouponController::class, 'store']); // coupon create
+    Route::get('coupon-details/{coupon}', [\App\Http\Controllers\API\Dashboard\Coupon\CouponController::class, 'show']); //coupon details
+});
 
 // Doctor routes (profile, medical, financial, coupons)
 Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function () {
@@ -69,10 +74,6 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::post('medical/update', [DoctorProfileApiController::class, 'medicalDataUpdate']); // Update medical info
     Route::post('financial/update', [DoctorProfileApiController::class, 'financialUpdate']); // Update financial info
 
-    Route::get('coupons', [CouponApiController::class, 'index']); // List coupons
-    Route::post('coupons/create', [CouponApiController::class, 'store']); // Create coupon
-    Route::post('coupons/update/{id}', [CouponApiController::class, 'update']); // Update coupon
-    Route::delete('coupons/delete/{id}', [CouponApiController::class, 'destroy']); // Delete coupon
     //available consultation for admin or patient member
     Route::get('available/consultation',[DoctorProfileApiController::class,'activeConsultation']);   //available consultation for admin or patient member
     Route::get('consultation/details/{id}',[DoctorProfileApiController::class,'patientDetails']);   //Patient Details

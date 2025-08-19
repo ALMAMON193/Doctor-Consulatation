@@ -12,12 +12,18 @@ class Coupon extends Model
         'code',
         'discount_percentage',
         'discount_amount',
-        'doctor_profile_id',
         'valid_from',
         'valid_to',
         'usage_limit',
         'used_count',
         'status',
+    ];
+
+    protected $casts = [
+        'valid_from' => 'date',
+        'valid_to' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function doctor()

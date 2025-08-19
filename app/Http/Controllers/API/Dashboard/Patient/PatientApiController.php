@@ -21,26 +21,40 @@ class PatientApiController extends Controller
     {
         $perPage = $request->input('per_page', 10);
         $statusFilter = $request->input('status');
+
+        // Analytics
         $analytics = $this->getPatientAnalytics();
+
+        // Query patients
         $patients = User::with('patient')
             ->where('user_type', 'patient')
             ->when($statusFilter, function ($q) use ($statusFilter) {
                 $q->whereHas('patient', function ($q2) use ($statusFilter) {
                     $q2->where('verification_status', $statusFilter);
                 });
-            })->paginate($perPage);
+            })
+            ->paginate($perPage);
 
-        $patients->getCollection()->transform(function ($patient) {
-            return new PatientListResource($patient);
-        });
+        // Transform collection using resource
+        $data = PatientListResource::collection($patients->items());
 
-        $apiResponse = [
-            'analytics' => $analytics,
-            'list'      => $patients, // Pass the paginator directly as 'list'
+        // Pagination info
+        $pagination = [
+            'total' => $patients->total(),
+            'per_page' => $patients->perPage(),
+            'current_page' => $patients->currentPage(),
+            'last_page' => $patients->lastPage(),
+            'from' => $patients->firstItem(),
+            'to' => $patients->lastItem(),
         ];
 
-        return $this->sendResponse($apiResponse, __('Patient list fetched successfully.'));
+        return $this->sendResponse([
+            'analytics' => $analytics,
+            'data' => $data,
+            'pagination' => $pagination,
+        ], __('Patient list fetched successfully.'));
     }
+
 
     private function getPatientAnalytics(): array
     {

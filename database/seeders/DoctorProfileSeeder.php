@@ -11,15 +11,15 @@ class DoctorProfileSeeder extends Seeder
 {
     public function run(): void
     {
-        // Fetch specializations from DB
-        $specializations = DB::table('specializations')->pluck('name')->toArray();
+        // Fetch all specialization IDs
+        $specializations = DB::table('specializations')->pluck('id')->toArray();
 
-        // Guard clause: if no specializations found, warn and exit
         if (empty($specializations)) {
             $this->command->warn('No specializations found. Please run SpecializationSeeder first.');
             return;
         }
 
+        // Fetch all doctors
         $doctors = User::where('user_type', 'doctor')->get();
 
         foreach ($doctors as $doctor) {
@@ -27,26 +27,18 @@ class DoctorProfileSeeder extends Seeder
             $profileExists = DB::table('doctor_profiles')->where('user_id', $doctor->id)->exists();
             if ($profileExists) continue;
 
-            // Pick 1–3 random specializations
-            $randomSpecializations = collect($specializations)
-                ->random(rand(1, min(3, count($specializations))))
-                ->values()
-                ->all();
-
-            // Insert into doctor_profiles
-            DB::table('doctor_profiles')->insert([
+            // Insert doctor profile (without JSON specialization)
+            $doctorId = DB::table('doctor_profiles')->insertGetId([
                 'user_id'                     => $doctor->id,
-                'specialization'             => json_encode($randomSpecializations),
                 'cpf_bank'                   => '12345678900',
                 'bank_name'                  => 'Health Bank',
                 'account_type'               => 'Savings',
                 'account_number'             => '987654321',
                 'dv'                         => '01',
-                'current_account_number'             => '987654321',
-                'current_dv'                         => '01',
+                'current_account_number'     => '987654321',
+                'current_dv'                 => '01',
                 'crm'                        => 'CRM' . str_pad($doctor->id, 5, '0', STR_PAD_LEFT),
                 'uf'                         => 'SP',
-                'consultation_fee'           => rand(300 ,500),
                 'monthly_income'             => rand(10000, 40000),
                 'company_income'             => rand(5000, 20000),
                 'company_phone'              => '0123456789',
@@ -75,7 +67,25 @@ class DoctorProfileSeeder extends Seeder
                 'updated_at'                 => now(),
             ]);
 
-            // Insert into user_addresses
+            // Assign 1–3 random specializations to pivot table
+            $randomSpecializations = collect($specializations)
+                ->random(rand(1, min(3, count($specializations))))
+                ->values()
+                ->all();
+
+            $pivotData = [];
+            foreach ($randomSpecializations as $specId) {
+                $pivotData[] = [
+                    'doctor_id' => $doctorId,
+                    'specialization_id' => $specId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            DB::table('doctor_specializations')->insert($pivotData);
+
+            // Optional: insert addresses or personal details if needed
             $addressExists = DB::table('user_addresses')->where('user_id', $doctor->id)->exists();
             if (!$addressExists) {
                 DB::table('user_addresses')->insert([
@@ -89,7 +99,6 @@ class DoctorProfileSeeder extends Seeder
                 ]);
             }
 
-            // Insert into user_personal_details
             $personalExists = DB::table('user_personal_details')->where('user_id', $doctor->id)->exists();
             if (!$personalExists) {
                 DB::table('user_personal_details')->insert([

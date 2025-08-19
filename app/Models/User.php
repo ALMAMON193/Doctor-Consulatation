@@ -3,12 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\Doctor;
-use App\Models\UserAddress;
-use App\Models\DoctorProfile;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\UserPersonalDetail;
-use App\Models\UserFinancialDetail;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +15,7 @@ class User extends Authenticatable
 {
 
     use HasFactory, Notifiable, HasApiTokens;
+
     protected $fillable = [
         'name',
         'email',

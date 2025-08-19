@@ -9,13 +9,15 @@ class BookConsultationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'patient_id'         => ['required', 'exists:patients,id'],
-            'doctor_profile_id'  => ['required', 'exists:doctor_profiles,id'],
-            'coupon_code'        => ['nullable', 'string'],
-            'complaint'          => ['nullable', 'string'],
-            'pain_level'         => ['nullable', 'integer', 'between:0,5'],
-            'consultation_date'  => ['nullable', 'date'],
-            'payment_method'     => ['required', 'in:card'],
+            'patient_id' => 'nullable|exists:patients,id',
+            'patient_member_id' => 'nullable|exists:patient_members,id',
+            'specialization_id' => 'required|exists:specializations,id',
+            'coupon_code' => 'nullable|string',
+            'complaint' => 'nullable|string|max:2000',
+            'pain_level' => 'nullable|integer|between:0,10',
+            'consultation_date' => 'nullable|date|after_or_equal:today',
+            'email' => 'nullable|email',
+            'payment_status' => 'nullable|in:pending,paid,completed,cancelled',
         ];
     }
 

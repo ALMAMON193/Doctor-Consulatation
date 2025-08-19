@@ -16,15 +16,12 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->decimal('discount_percentage', 5, 2)->default(0.00);
             $table->decimal('discount_amount', 8, 2)->default(0.00);
-            $table->unsignedBigInteger('doctor_profile_id')->nullable();
             $table->date('valid_from');
             $table->date('valid_to');
             $table->integer('usage_limit')->default(1);
             $table->integer('used_count')->default(0);
             $table->enum('status', ['active', 'expired', 'used'])->default('active');
             $table->timestamps();
-
-            $table->foreign('doctor_profile_id')->references('id')->on('doctor_profiles')->onDelete('set null');
         });
     }
 

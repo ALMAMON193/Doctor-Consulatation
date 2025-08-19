@@ -16,7 +16,6 @@ return new class extends Migration
         Schema::create('consultations', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('patient_id')->nullable();
-            $table->unsignedBigInteger('doctor_profile_id');
             $table->unsignedBigInteger('patient_member_id')->nullable();
             $table->foreignIdFor(Specialization::class)->constrained();
             $table->decimal('fee_amount', 8, 2);
@@ -31,7 +30,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
-            $table->foreign('doctor_profile_id')->references('id')->on('doctor_profiles')->onDelete('cascade');
             $table->foreign('patient_member_id')->references('id')->on('patient_members')->onDelete('cascade');
         });
     }

@@ -7,8 +7,11 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
 use App\Http\Resources\ChatMessageResource;
+use App\Models\Consultation;
 use App\Models\Message;
+use App\Models\PatientMember;
 use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -52,39 +55,65 @@ class ConsultationChatApiController extends Controller
 //    }
     public function sendMessage(SendMessageRequest $request): \Illuminate\Http\JsonResponse
     {
-        Log::info('sendMessage request received', [
-            'sender_type' => $request->sender_type,
-            'sender_id' => $request->sender_id,
-            'receiver_type' => $request->receiver_type,
-            'receiver_id' => $request->receiver_id,
-            'message' => $request->message,
-            'has_file' => $request->hasFile('file'),
-        ]);
-
         try {
-            // Validate sender and receiver types
             $validTypes = ['doctor_profile', 'patient', 'patient_member'];
+
+            // ভ্যালিড স্যান্ডার ও রিসিভার চেক
             if (!in_array($request->sender_type, $validTypes) || !in_array($request->receiver_type, $validTypes)) {
-                Log::warning('Invalid sender or receiver type', [
-                    'sender_type' => $request->sender_type,
-                    'receiver_type' => $request->receiver_type,
-                ]);
                 return response()->json(['error' => 'Invalid sender or receiver type'], 400);
             }
 
-            // Prevent patient-to-patient_member messaging
+            // ===== Patient ↔ Patient Member  =====
             if (
                 ($request->sender_type === 'patient' && $request->receiver_type === 'patient_member') ||
                 ($request->sender_type === 'patient_member' && $request->receiver_type === 'patient')
             ) {
-                Log::warning('Forbidden: Patient and patient member cannot chat', [
-                    'sender_type' => $request->sender_type,
-                    'receiver_type' => $request->receiver_type,
-                ]);
-                return response()->json(['error' => 'Patient and patient member cannot chat with each other'], 403);
+                if ($request->sender_type === 'patient') {
+                    // শুধু নিজের মেম্বারকে চ্যাট করতে পারবে
+                    $member = PatientMember::where('id', $request->receiver_id)
+                        ->where('patient_id', $request->sender_id)
+                        ->first();
+                    if (!$member) {
+                        return response()->json(['error' => 'You can only chat with your own patient members'], 403);
+                    }
+                } else {
+                    // Patient member শুধু parent patient এর সাথে চ্যাট করতে পারবে
+                    $member = PatientMember::where('id', $request->sender_id)
+                        ->where('patient_id', $request->receiver_id)
+                        ->first();
+                    if (!$member) {
+                        return response()->json(['error' => 'Patient members can only chat with their parent patient'], 403);
+                    }
+                }
+            }
+            // ===== Doctor ↔ Patient Member চ্যাট নিষিদ্ধ =====
+            if (
+                ($request->sender_type === 'patient_member' && $request->receiver_type === 'doctor_profile') ||
+                ($request->sender_type === 'doctor_profile' && $request->receiver_type === 'patient_member')
+            ) {
+                return response()->json(['error' => 'Doctors cannot chat with patient members'], 403);
             }
 
-            // Handle file upload
+            // ===== Patient ↔ Doctor চ্যাট চেক (Consultation অনুযায়ী) =====
+            if ($request->sender_type === 'patient' && $request->receiver_type === 'doctor_profile') {
+                $consultationExists = Consultation::where('patient_id', $request->sender_id)
+                    ->where('doctor_profile_id', $request->receiver_id)
+                    ->exists();
+                if (!$consultationExists) {
+                    return response()->json(['error' => 'You can only message doctors you have consulted with'], 403);
+                }
+            }
+
+            if ($request->sender_type === 'doctor_profile' && $request->receiver_type === 'patient') {
+                $consultationExists = Consultation::where('doctor_profile_id', $request->sender_id)
+                    ->where('patient_id', $request->receiver_id)
+                    ->exists();
+                if (!$consultationExists) {
+                    return response()->json(['error' => 'You can only message patients who have consulted with you'], 403);
+                }
+            }
+
+            // ===== File Upload =====
             $filePath = null;
             if ($request->hasFile('file')) {
                 $file = $request->file('file');
@@ -92,10 +121,9 @@ class ConsultationChatApiController extends Controller
                     'file' => 'mimes:jpg,png,pdf,doc,docx|max:10240',
                 ]);
                 $filePath = Helper::fileUpload($file, 'chat_files');
-                Log::info('File uploaded', ['file_path' => $filePath]);
             }
 
-            // Prepare message data
+            // ===== Message Save =====
             $messageData = [
                 'message' => $request->message,
                 'file' => $filePath,
@@ -103,25 +131,13 @@ class ConsultationChatApiController extends Controller
                 'sender_' . $request->sender_type . '_id' => $request->sender_id,
                 'receiver_' . $request->receiver_type . '_id' => $request->receiver_id,
             ];
-            Log::info('Message data prepared', $messageData);
 
-            // Create and broadcast message
             $chat = Message::create($messageData);
-            Log::info('Message created', ['message_id' => $chat->id]);
-
-            broadcast(new MessageSent($chat))->toOthers();
-            Log::info('Message broadcasted', ['message_id' => $chat->id]);
 
             return $this->sendResponse(new ChatMessageResource($chat), __('Message sent successfully'));
+
         } catch (Exception $e) {
-            Log::error('Failed to send message', [
-                'error' => $e->getMessage(),
-                'sender_type' => $request->sender_type,
-                'sender_id' => $request->sender_id,
-                'receiver_type' => $request->receiver_type,
-                'receiver_id' => $request->receiver_id,
-            ]);
-            return response()->json(['error' => 'Failed to send message'], 500);
+            return response()->json(['error' => 'Failed to send message', 'details' => $e->getMessage()], 500);
         }
     }
 

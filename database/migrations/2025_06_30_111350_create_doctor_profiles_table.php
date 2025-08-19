@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('doctor_profiles', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
-            $table->json('specialization')->nullable();
             $table->string('cpf_bank')->nullable();
             $table->string('bank_name')->nullable();
             $table->string('account_type')->nullable();
@@ -24,8 +23,6 @@ return new class extends Migration
             $table->string('current_dv')->nullable();
             $table->string('crm')->unique()->nullable();
             $table->string('uf')->nullable();
-            $table->decimal('consultation_fee', 10, 2)->default(0);
-            $table->time('consultation_time')->nullable()->default('00:10:00');
             $table->decimal('monthly_income', 10, 2)->nullable();
             $table->decimal('company_income', 10, 2)->nullable();
             $table->string('company_phone')->nullable();

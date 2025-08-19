@@ -19,7 +19,6 @@ class Consultation extends Model
     // doctor_id  doctor_profile_id
     protected $fillable = [
         'patient_id',
-        'doctor_profile_id',
         'patient_member_id',
         'specialization_id',
         'fee_amount',
@@ -30,6 +29,11 @@ class Consultation extends Model
         'pain_level',
         'consultation_date',
         'payment_status'
+    ];
+    protected $casts = [
+        'consultation_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /* Relationships ------------------------------------------------------- */

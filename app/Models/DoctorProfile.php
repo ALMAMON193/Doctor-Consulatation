@@ -63,7 +63,6 @@ class DoctorProfile extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-
     public function completedConsultations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Consultation::class)->where('consultation_status', 'completed');
@@ -76,4 +75,15 @@ class DoctorProfile extends Model
     {
         return $this->hasMany(Rating::class, 'doctor_profile_id');
     }
+
+    public function specializations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(
+            Specialization::class,
+            'doctor_specializations',
+            'doctor_id',
+            'specialization_id'
+        );
+    }
+
 }
