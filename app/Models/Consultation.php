@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Consultation extends Model
 {
+
     // doctor_id  doctor_profile_id
     protected $fillable = [
         'patient_id',
@@ -28,7 +29,11 @@ class Consultation extends Model
         'complaint',
         'pain_level',
         'consultation_date',
-        'payment_status'
+        'payment_status',
+        'doctor_id',
+        'consultation_status',
+        'assign_application',
+        'assign_at',
     ];
     protected $casts = [
         'consultation_date' => 'datetime',
@@ -41,6 +46,10 @@ class Consultation extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function patientMember(): BelongsTo
@@ -78,4 +87,14 @@ class Consultation extends Model
             }
         });
     }
+//    public function getNotifiableUserAttribute()
+//    {
+//        if ($this->patient?->user) {
+//            return $this->patient->user;
+//        }
+//        if ($this->patientMember?->patient?->user) {
+//            return $this->patientMember->patient->user;
+//        }
+//        return null;
+//    }
 }

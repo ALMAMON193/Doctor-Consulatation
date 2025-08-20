@@ -16,6 +16,10 @@ class PatientMember extends Model
         'relationship',
         'profile_photo',
     ];
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'patient_id', 'id');
+    }
     public function patient(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Patient::class);

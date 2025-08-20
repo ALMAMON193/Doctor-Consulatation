@@ -15,7 +15,6 @@ class DoctorSpecialization extends Model
     {
         return $this->belongsTo(DoctorProfile::class, 'doctor_id');
     }
-
     public function specialization(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Specialization::class, 'specialization_id');

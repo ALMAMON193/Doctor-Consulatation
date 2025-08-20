@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\Dashboard\Consultation\ConsultationApiController;
+use App\Http\Controllers\API\Doctor\NotificationController;
 use App\Http\Controllers\API\Doctor\PatientHistoryController;
 use App\Http\Controllers\API\Patient\HomeApiController;
 use Illuminate\Support\Facades\Broadcast;
@@ -81,8 +82,17 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     //patient History
     Route::get('patient/history',[PatientHistoryController::class,'patientHistory']);   //Patient History
 
-});
+    //accept and view consultation
+    Route::get('consultations/{consultation}', [\App\Http\Controllers\API\Doctor\ConsultationController::class, 'show']);   //view consultation
+    // ✅ Accept consultation (first doctor wins)
+    Route::post('consultations/{consultation}/accept', [\App\Http\Controllers\API\Doctor\ConsultationController::class, 'accept']);    //accept consultation
+    //Doctor Notification route
+    // Get all notifications for doctor
+    Route::get('notifications', [NotificationController::class, 'index']);
+    // Mark a notification as read
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
+});
 // Patient routes (profile, members, consultations, ratings)
 Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(function () {
     Route::post('create-profile', [PatientProfileApiController::class, 'createProfile']); // Create profile
@@ -99,7 +109,6 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::get('consultation-details', [ConsultationRecordApiController::class, 'index']); // Consultation list
     Route::delete('consultations/delete/{id}', [ConsultationRecordApiController::class, 'destroy']); // Delete consultation
 });
-
 // Payment routes
 Route::get('payment/success', [ConsultationBookingController::class, 'success'])->name('payment.success'); // Payment success
 Route::get('payment/fail', [ConsultationBookingController::class, 'fail'])->name('payment.fail'); // Payment failure

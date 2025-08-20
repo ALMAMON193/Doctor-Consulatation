@@ -25,7 +25,6 @@ class ConsultationBookingController extends Controller
     {
         Stripe::setApiKey(config('services.stripe.secret')); // Set Stripe API key
     }
-
     // Book consultation and create Stripe checkout session
     public function book(BookConsultationRequest $request): JsonResponse
     {
@@ -112,7 +111,6 @@ class ConsultationBookingController extends Controller
             return $this->sendError(__('Something Went to Wrong', ['error' => $e->getMessage()])); // Return error
         }
     }
-
     // Handle Stripe webhook for completed payment
     public function handleWebhook(Request $request): JsonResponse
     {
@@ -166,7 +164,6 @@ class ConsultationBookingController extends Controller
             return response()->json(['error' => 'Webhook failed'], 500); // Return error
         }
     }
-
     // Handle payment success redirect (works for web)
     public function success(Request $request)
     {
@@ -181,7 +178,6 @@ class ConsultationBookingController extends Controller
 
         return $this->sendResponse ($consultation,__('Payment Successfully')); // Render json
     }
-
     // Payment cancel redirect
     public function cancel(): JsonResponse
     {

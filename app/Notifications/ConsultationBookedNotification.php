@@ -22,16 +22,20 @@ class ConsultationBookedNotification extends Notification
 
     public function toMail($notifiable): MailMessage
     {
+        $consultation = $this->consultation;
+
         return (new MailMessage)
             ->subject('New Consultation in Your Specialization')
             ->greeting('Hello Dr. ' . $notifiable->name)
-            ->line('A patient has booked a consultation in your specialization: ' . $this->consultation->specialization->name)
-            ->line('Patient Complaint: ' . ($this->consultation->complaint ?? 'Not Provided'))
-            ->line('Consultation Date: ' . $this->consultation->consultation_date->format('d M, Y H:i'))
-            ->action('View Consultation', url('/doctor/consultations/' . $this->consultation->id))
-            ->line('Thank you for using our platform.');
+            ->line('A patient has booked a consultation in your specialization: ' . $consultation->specialization->name)
+            ->line('Patient Complaint: ' . ($consultation->complaint ?? 'Not Provided'))
+            ->line('Consultation Date: ' . optional($consultation->consultation_date)->format('d M, Y H:i'))
+            // ✅ Accept button
+            ->action('Accept Consultation', url('/api/doctor/consultations/' . $consultation->id . '/accept'))
+            // ✅ View button
+            ->action('View Consultation', url('/api/doctor/consultations/' . $consultation->id))
+            ->line('Please accept this consultation if you are available. Thank you for using our platform.');
     }
-
     /**
      * Database notification content
      * Saved in the "notifications" table
@@ -39,10 +43,15 @@ class ConsultationBookedNotification extends Notification
     public function toArray($notifiable): array
     {
         return [
-            'consultation_id' => $this->consultation->id,
-            'specialization'  => $this->consultation->specialization->name,
-            'patient'         => $this->consultation->patient?->name ?? $this->consultation->patientMember?->name,
-            'consultation_date' => $this->consultation->consultation_date->toDateTimeString(),
+            'consultation_id'   => $this->consultation->id,
+            'specialization'    => $this->consultation->specialization->name,
+            'patient'           => $this->consultation->patient?->name ?? $this->consultation->patientMember?->name,
+            'consultation_date' => optional($this->consultation->consultation_date)->toDateTimeString(),
+            'actions' => [
+                'accept_consultation' => url('/api/doctor/consultations/' . $this->consultation->id . '/accept'),
+                'view_consultation'   => url('/api/doctor/consultations/' . $this->consultation->id),
+            ]
         ];
     }
+
 }

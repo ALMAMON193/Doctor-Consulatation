@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Consultation;
+
 use App\Models\Specialization;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -27,6 +27,10 @@ return new class extends Migration
             $table->date('consultation_date')->nullable();
             $table->enum('payment_status', ['pending', 'paid', 'completed', 'cancelled'])->default('pending');
             $table->enum('consultation_status', ['pending', 'completed', 'cancelled','monitoring'])->default('pending');
+            // 🔹 Assignment fields
+            $table->unsignedBigInteger('doctor_id')->nullable();
+            $table->string('assign_application')->nullable()->comment ('assign application to doctor name');
+            $table->timestamp('assign_at')->nullable();
             $table->timestamps();
 
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
