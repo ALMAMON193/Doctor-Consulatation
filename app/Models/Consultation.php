@@ -87,14 +87,22 @@ class Consultation extends Model
             }
         });
     }
-//    public function getNotifiableUserAttribute()
-//    {
-//        if ($this->patient?->user) {
-//            return $this->patient->user;
-//        }
-//        if ($this->patientMember?->patient?->user) {
-//            return $this->patientMember->patient->user;
-//        }
-//        return null;
-//    }
+
+    // Consultation.php
+    public function getNotifiableUserAttribute()
+    {
+        // Case 1: consultation booked directly by patient
+        if ($this->patient?->user) {
+            return $this->patient->user;
+        }
+
+        // Case 2: consultation booked for a family member
+        if ($this->patientMember?->patient?->user) {
+            return $this->patientMember->patient->user;
+        }
+
+        return null; // কোনো user নেই notify করার জন্য
+    }
+
+
 }

@@ -26,21 +26,33 @@ class ConsultationAssignedNotification extends Notification
     {
         $consultation = $this->consultation;
 
+        // Get doctor name safely
+        $doctorName = $consultation->doctorProfile?->user?->name ??
+            $consultation->doctorProfile?->name ??
+            $consultation->assign_application ??
+            'Unknown Doctor';
+
         return (new MailMessage)
             ->subject('Your Consultation Has Been Assigned')
             ->greeting('Hello ' . $notifiable->name)
-            ->line('Your consultation request has been assigned to Dr. ' . $consultation->doctor->user->name)
+            ->line('Your consultation request has been assigned to Dr. ' . $doctorName)
             ->line('Specialization: ' . $consultation->specialization->name)
             ->line('Consultation Date: ' . optional($consultation->consultation_date)->format('d M, Y H:i'))
-            ->line('We’ll notify you with updates from your doctor.')
+            ->line('Well notify you with updates from your doctor.')
             ->action('View Consultation', url('/patient/consultations/' . $consultation->id));
     }
 
     public function toArray($notifiable): array
     {
+        // Get doctor name safely
+        $doctorName = $this->consultation->doctorProfile?->user?->name ??
+                     $this->consultation->doctorProfile?->name ??
+                     $this->consultation->assign_application ??
+                     'Unknown Doctor';
+
         return [
             'consultation_id'   => $this->consultation->id,
-            'doctor'            => $this->consultation->doctor->user->name,
+            'doctor'            => $doctorName,
             'specialization'    => $this->consultation->specialization->name,
             'consultation_date' => optional($this->consultation->consultation_date)->toDateTimeString(),
             'actions' => [
