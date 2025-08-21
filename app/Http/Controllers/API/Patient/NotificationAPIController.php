@@ -1,20 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\API\Doctor;
+namespace App\Http\Controllers\API\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Doctor\Notification\NotificationResource;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
-class NotificationController extends Controller
+class NotificationAPIController extends Controller
 {
     use ApiResponse;
     public function index(Request $request)
     {
         $notifications = $request->user()->notifications()->latest()->get();
         return $this->sendResponse (
-            NotificationResource::collection($notifications),
+            \App\Http\Resources\Patient\NotificationResource::collection($notifications),
             __('Doctor notifications retrieved successfully.')
         );
     }

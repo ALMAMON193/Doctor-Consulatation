@@ -46,69 +46,38 @@ class ConsultationController extends Controller
         return $this->sendResponse ($apiResponse, __ ('Consultation View Details'));
     }
 
-    // ✅ accept consultation
     public function getNotifiableUserAttribute()
     {
-        if ($this->patient_id && $this->patient && $this->patient->user) {
-            // Direct patient consultation - notify the patient's user
-            return $this->patient->user;
-        } elseif ($this->patient_member_id &&
-            $this->patientMember &&
-            $this->patientMember->patient &&
-            $this->patientMember->patient->user) {
-            // Patient member consultation - notify the parent patient's user
-            return $this->patientMember->patient->user;
+        if ($this->patient_id) {
+            return $this->patient?->user;
         }
-
+        if ($this->patient_member_id) {
+            return $this->patientMember?->patient?->user;
+        }
         return null;
     }
-
-// Updated accept function in your controller
+    // Simplified Accept function
     public function accept(Consultation $consultation)
     {
         try {
             DB::transaction(function () use (&$consultation) {
 
-                // Add debugging information
-                Log::info("Consultation Debug Info:", [
-                    'consultation_id' => $consultation->id,
-                    'patient_id' => $consultation->patient_id,
-                    'patient_member_id' => $consultation->patient_member_id,
-                    'doctor_id' => $consultation->doctor_id,
-                ]);
-
-                // Load relations safely with nested relationships
-                $consultation->load([
-                    'patient.user',
-                    'patientMember.patient.user',
-                    'specialization',
-                    'doctorProfile.user'
-                ]);
-
-                // Debug loaded relationships
-                Log::info("Loaded Relations Debug:", [
-                    'has_patient' => $consultation->patient ? 'yes' : 'no',
-                    'has_patient_user' => $consultation->patient?->user ? 'yes' : 'no',
-                    'has_patient_member' => $consultation->patientMember ? 'yes' : 'no',
-                    'has_patient_member_patient' => $consultation->patientMember?->patient ? 'yes' : 'no',
-                    'has_patient_member_patient_user' => $consultation->patientMember?->patient?->user ? 'yes' : 'no',
-                ]);
-
-                // Already assigned check
+                // Check if already assigned
                 if ($consultation->doctor_id) {
                     throw new \Exception('This consultation has already been assigned.');
                 }
 
-                // Authenticated doctor
-                $doctor = auth()->user()->doctorProfile
-                    ?? throw new \Exception('Authenticated user has no doctor profile.');
+                // Get authenticated doctor
+                $doctor = auth()->user()->doctorProfile;
+                if (!$doctor) {
+                    throw new \Exception('Authenticated user has no doctor profile.');
+                }
 
-                // Check payment completed
+                // Check payment
                 $hasPaid = $consultation->payment()->where('status', 'completed')->exists();
                 if (!$hasPaid) {
                     throw new \Exception('Payment not completed for this consultation. Cannot accept.');
                 }
-
                 // Assign consultation
                 $consultation->doctor_id = $doctor->id;
                 $consultation->consultation_status = 'monitoring';
@@ -116,73 +85,15 @@ class ConsultationController extends Controller
                 $consultation->assign_at = now();
                 $consultation->save();
 
-                // Determine who to notify based on consultation type
-                $notifiableUser = null;
-
-                Log::info("Starting notification logic for consultation: {$consultation->id}");
-
-                if ($consultation->patient_id) {
-                    Log::info("Consultation has patient_id: {$consultation->patient_id}");
-
-                    if ($consultation->patient) {
-                        Log::info("Patient relationship exists");
-
-                        if ($consultation->patient->user) {
-                            Log::info("Patient user relationship exists");
-                            $notifiableUser = $consultation->patient->user;
-                        } else {
-                            Log::warning("Patient user is null for patient_id: {$consultation->patient_id}");
-                        }
-                    } else {
-                        Log::warning("Patient relationship is null for patient_id: {$consultation->patient_id}");
-                    }
-
-                } elseif ($consultation->patient_member_id) {
-                    Log::info("Consultation has patient_member_id: {$consultation->patient_member_id}");
-
-                    if ($consultation->patientMember) {
-                        Log::info("PatientMember relationship exists");
-
-                        if ($consultation->patientMember->patient) {
-                            Log::info("PatientMember's patient relationship exists");
-
-                            if ($consultation->patientMember->patient->user) {
-                                Log::info("PatientMember's patient user relationship exists");
-                                $notifiableUser = $consultation->patientMember->patient->user;
-                            } else {
-                                Log::warning("PatientMember's patient user is null");
-                            }
-                        } else {
-                            Log::warning("PatientMember's patient is null for patient_member_id: {$consultation->patient_member_id}");
-                        }
-                    } else {
-                        Log::warning("PatientMember relationship is null for patient_member_id: {$consultation->patient_member_id}");
-                    }
-                } else {
-                    Log::warning("Consultation has neither patient_id nor patient_member_id");
+                // Send notification to the right user
+                $userToNotify = $consultation->notifiable_user;
+                if ($userToNotify) {
+                    $userToNotify->notify(
+                        new \App\Notifications\ConsultationAssignedNotification($consultation)
+                    );
                 }
+            });
 
-                // Send notification
-                if ($notifiableUser) {
-                    Log::info("Sending notification to user: {$notifiableUser->id}");
-                    try {
-                        // Make sure we have all relationships loaded for notification
-                        $consultation->load(['doctorProfile.user', 'specialization']);
-
-                        $notifiableUser->notify(
-                            new \App\Notifications\ConsultationAssignedNotification($consultation)
-                        );
-                        Log::info("Notification sent successfully to user: {$notifiableUser->id}");
-                    } catch (\Exception $e) {
-                        Log::error("Notification failed: " . $e->getMessage());
-                        Log::error("Notification error trace: " . $e->getTraceAsString());
-                    }
-                } else {
-                    Log::warning("No user found to notify for consultation ID: {$consultation->id}");
-                }
-            }); // transaction end
-
-            // Refresh to get latest data
             $consultation->refresh();
 
             return $this->sendResponse([
@@ -193,7 +104,6 @@ class ConsultationController extends Controller
             ], __('Consultation Accepted'));
 
         } catch (\Exception $e) {
-            Log::error('Consultation accept failed: ' . $e->getMessage());
             return $this->sendError($e->getMessage() ?? 'Something went wrong');
         }
     }

@@ -4,6 +4,7 @@ use App\Http\Controllers\API\Dashboard\Consultation\ConsultationApiController;
 use App\Http\Controllers\API\Doctor\NotificationController;
 use App\Http\Controllers\API\Doctor\PatientHistoryController;
 use App\Http\Controllers\API\Patient\HomeApiController;
+use App\Http\Controllers\API\Patient\NotificationAPIController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\Auth\AuthApiController;
@@ -86,11 +87,11 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::get('consultations/{consultation}', [\App\Http\Controllers\API\Doctor\ConsultationController::class, 'show']);   //view consultation
     // ✅ Accept consultation (first doctor wins)
     Route::post('consultations/{consultation}/accept', [\App\Http\Controllers\API\Doctor\ConsultationController::class, 'accept']);    //accept consultation
-    //Doctor Notification route
+
     // Get all notifications for doctor
-    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications', [NotificationController::class, 'index']);     // list of notification
     // Mark a notification as read
-    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);    //notification mark as read
 
 });
 // Patient routes (profile, members, consultations, ratings)
@@ -108,6 +109,9 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::post('consultations', [ConsultationBookingController::class, 'book']); // Book consultation
     Route::get('consultation-details', [ConsultationRecordApiController::class, 'index']); // Consultation list
     Route::delete('consultations/delete/{id}', [ConsultationRecordApiController::class, 'destroy']); // Delete consultation
+
+    Route::get('notifications', [NotificationAPIController::class, 'index']);     // Get all notifications for patient
+    Route::post('notifications/{notification}/read', [NotificationAPIController::class, 'markAsRead']);    //Mark a notification as read
 });
 // Payment routes
 Route::get('payment/success', [ConsultationBookingController::class, 'success'])->name('payment.success'); // Payment success
@@ -120,7 +124,6 @@ Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
     Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']); // Send message
     Route::get('history', [ConsultationChatApiController::class, 'getConversationHistory']);
 });
-
 // Medical records (patient and member reports)
 Route::prefix('patient/medical-record')->middleware('patient', 'auth:sanctum')->group(function () {
     Route::get('/', [MedicalApiRecordController::class, 'index']); // List medical records
