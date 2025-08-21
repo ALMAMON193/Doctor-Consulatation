@@ -19,7 +19,6 @@ class HomeApiController extends Controller
         if (!$user) {
             return $this->sendError(__('Unauthorized'), [], 401);
         }
-
         return $this->sendResponse(new PatientHomeResource($user), __('Patient home data fetched successfully.'));
     }
 }

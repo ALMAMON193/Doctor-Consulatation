@@ -183,4 +183,14 @@ class ConsultationBookingController extends Controller
     {
         return $this->sendResponse([], __('Payment cancelled')); // Cancel message
     }
+    //stripe publish key fetch
+    public function publishKey()
+    {
+        $publishableKey = env('STRIPE_PUBLISHABLE_KEY');
+        $apiResponse = [
+            'publishable_key' => $publishableKey,
+        ];
+        return $this->sendResponse($apiResponse, __('Publish key fetched'));
+
+    }
 }
