@@ -6,24 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-/**
- * @property-read Patient        $patient
- * @property-read DoctorProfile  $doctorProfile
- * @property-read Payment|null   $payment
- * @method static create(array $array)
- * @method static whereIn(string $string, string[] $array)
- * @method static where(string $string, $id)
- */
 class Consultation extends Model
 {
-
-    // doctor_id  doctor_profile_id
     protected $fillable = [
         'patient_id',
         'patient_member_id',
         'specialization_id',
         'fee_amount',
-        'coupon_code',
         'discount_amount',
         'final_amount',
         'complaint',
@@ -35,21 +24,20 @@ class Consultation extends Model
         'assign_application',
         'assign_at',
     ];
+
     protected $casts = [
         'consultation_date' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'assign_at' => 'datetime',
+        'pain_level' => 'integer',
+        'fee_amount' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'final_amount' => 'decimal:2',
     ];
 
-    /* Relationships ------------------------------------------------------- */
-
+    /* 🔹 Relationships */
     public function patient(): BelongsTo
     {
-        return $this->belongsTo(Patient::class);
-    }
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Patient::class, 'patient_id');
     }
 
     public function patientMember(): BelongsTo
@@ -59,50 +47,51 @@ class Consultation extends Model
 
     public function doctorProfile(): BelongsTo
     {
-        return $this->belongsTo(DoctorProfile::class);
+        return $this->belongsTo(DoctorProfile::class, 'doctor_id');
     }
+
     public function specialization(): BelongsTo
     {
-        return $this->belongsTo(Specialization::class);
+        return $this->belongsTo(Specialization::class, 'specialization_id');
     }
 
     public function payment(): HasOne
     {
-        return $this->hasOne(Payment::class);
+        return $this->hasOne(Payment::class, 'consultation_id', 'id');
     }
 
-    protected static function booted(): void
-    {
-        static::created(function ($consultation) {
-            // if payment status paid
-            if ($consultation->payment_status === 'paid') {
-                // if  patient make a consultation
-                if ($consultation->patient_id) {
-                    $consultation->patient?->increment('consulted');
-                }
-                // if member make a consultation
-                elseif ($consultation->patient_member_id) {
-                    $consultation->patientMember?->patient?->increment('consulted');
-                }
-            }
-        });
-    }
-
-    // Consultation.php
+    /* 🔹 Useful Attribute Helpers */
     public function getNotifiableUserAttribute()
     {
-        // Case 1: consultation booked directly by patient
         if ($this->patient?->user) {
             return $this->patient->user;
         }
-
-        // Case 2: consultation booked for a family member
         if ($this->patientMember?->patient?->user) {
             return $this->patientMember->patient->user;
         }
-
-        return null; // কোনো user নেই notify করার জন্য
+        return null;
     }
 
+    public function getPatientNameAttribute(): string
+    {
+        return $this->patient?->user?->name
+            ?? $this->patientMember?->patient?->user?->name
+            ?? $this->patientMember?->name
+            ?? 'Unknown';
+    }
 
+    public function getDoctorNameAttribute(): ?string
+    {
+        return $this->doctorProfile?->user?->name;
+    }
+
+    public function getSpecializationNameAttribute(): string
+    {
+        return $this->specialization?->name ?? 'General';
+    }
+
+    public function getIsPaidAttribute(): bool
+    {
+        return $this->payment && in_array($this->payment->status, ['completed', 'paid']);
+    }
 }

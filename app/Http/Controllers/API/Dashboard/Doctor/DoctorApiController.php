@@ -15,32 +15,36 @@ use Illuminate\Support\Facades\DB;
 class DoctorApiController extends Controller
 {
     use ApiResponse;
-
-    public function doctorList(Request $request): \Illuminate\Http\JsonResponse
+    public function doctorList(Request $request)
     {
         $perPage = $request->input('per_page', 10);
-        $statusFilter = $request->input('status'); // 'pending', 'verified', 'unverified', or 'rejected'
-
-        //  Get analytics summary
+        $statusFilter = $request->input('status'); // pending, verified, unverified, rejected
+        //consultation count doctor assign in consultation
+        $doctorsConsultation = User::where('user_type', 'doctor')
+            ->withCount('assignedConsultations')
+            ->get();
+        // Example analytics, implement your own method
         $analytics = $this->getDoctorAnalytics();
-
-        // 👤 Build doctor query
-        $query = User::with('doctorProfile')
-            ->where('user_type', 'doctor')
+        // Build query
+        $query = User::where('user_type', 'doctor')
+            ->withCount([
+                'assignedConsultations', // total assigned consultations
+                'assignedConsultations as completed_consultations_count' => function ($q) {
+                    $q->where('consultation_status', 'completed'); // only completed
+                }
+            ])
             ->when($statusFilter, function ($q) use ($statusFilter) {
                 $q->whereHas('doctorProfile', function ($q2) use ($statusFilter) {
                     $q2->where('verification_status', $statusFilter);
                 });
             });
-
-        // 👤 Paginate
+        // Paginate
         $doctors = $query->paginate($perPage);
 
-        // 🛠️ Apply resource formatting
+        // Format response using resource
         $collection = DoctorListResource::collection($doctors)->resolve();
         $doctors->setCollection(collect($collection));
 
-        //  Format response
         $apiResponse = [
             'analytics' => $analytics,
             'list' => $doctors->items(),
@@ -50,44 +54,63 @@ class DoctorApiController extends Controller
                 'current_page' => $doctors->currentPage(),
                 'last_page' => $doctors->lastPage(),
                 'from' => $doctors->firstItem(),
-                'to' => $doctors->lastItem()
-            ]
+                'to' => $doctors->lastItem(),
+            ],
         ];
 
-        return $this->sendResponse($apiResponse, __('Doctor data List fetched successfully.'));
+        return $this->sendResponse($apiResponse, 'Doctor list fetched successfully');
     }
+
+
     private function getDoctorAnalytics(): array
     {
+        // Total number of doctors
         $allDoctors = User::where('user_type', 'doctor')->count();
 
+        // Count doctors by verification status
         $doctorStatuses = DB::table('doctor_profiles')
-            ->select('id', 'verification_status')
-            ->get();
+            ->select('verification_status', DB::raw('COUNT(*) as total'))
+            ->groupBy('verification_status')
+            ->pluck('total', 'verification_status')
+            ->toArray();
 
-        $consultationCounts = DB::table('consultations')
-            ->select('doctor_profile_id', DB::raw('COUNT(*) as total_consulted'))
-            ->where('consultation_status', 'completed')
-            ->groupBy('doctor_profile_id')
-            ->pluck('total_consulted', 'doctor_profile_id');
-
+        // Ensure keys exist even if no doctors in that status
+        $verifiedDoctor = $doctorStatuses['verified'] ?? 0;
+        $pendingDoctor = $doctorStatuses['pending'] ?? 0;
+        $unverifiedDoctor = $doctorStatuses['unverified'] ?? 0;
+        $rejectedDoctor = $doctorStatuses['rejected'] ?? 0; // if needed
 
         return [
             'allDoctors' => $allDoctors,
-            'verifiedDoctor' => $doctorStatuses->where('verification_status', 'verified')->count(),
-            'pendingDoctor' => $doctorStatuses->where('verification_status','pending')->count(),
-            'unverifiedDoctor' => $doctorStatuses->where('verification_status','unverified')->count(),
+            'verifiedDoctor' => $verifiedDoctor,
+            'pendingDoctor' => $pendingDoctor,
+            'unverifiedDoctor' => $unverifiedDoctor,
+            'rejectedDoctor' => $rejectedDoctor,
+
         ];
     }
+
     //doctor Create for admin dashboard
     public function doctorDetails($id): \Illuminate\Http\JsonResponse
     {
-        $doctor = User::with(['doctorProfile', 'address', 'personalDetails'])->find($id);
-
+        $doctor = User::with(['doctorProfile', 'address', 'personalDetails'])
+            ->withCount([
+                'assignedConsultations', // total assigned
+                'assignedConsultations as completed_consultations_count' => function ($q) {
+                    $q->where('consultation_status', 'completed');
+                },
+                'assignedConsultations as cancel_consultation' => function ($q) {
+                    $q->where('consultation_status', 'cancelled');
+                },
+            ])
+            ->find($id);
         if (!$doctor || $doctor->user_type !== 'doctor') {
-            return $this->sendResponse(null, 'Doctor not found', null, 404);
+            return $this->sendResponse([], 'Doctor not found');
         }
+
         return $this->sendResponse(new DoctorDetailResource($doctor), 'Doctor details fetched successfully');
     }
+
     //create  doctor for admin
     public function createDoctor(StoreRequest $request): \Illuminate\Http\JsonResponse
     {
@@ -96,7 +119,6 @@ class DoctorApiController extends Controller
         if (!$user) {
             return $this->sendError(__('User not authenticated.'), [], 401);
         }
-
         if ($user->user_type !== 'admin') {
             return $this->sendError(__('Only Admin can access this page'), [], 403);
         }

@@ -12,98 +12,116 @@ class ConsultationController extends Controller
 {
     use ApiResponse;
 
-    // ✅ view a consultation
-    public function show (Consultation $consultation)
+    /**
+     * View a consultation
+     */
+    public function show($id)
     {
-        $consultation->load (['patient.user', 'patientMember.patient.user', 'doctorProfile.user', 'specialization']);
+        $consultation = Consultation::with([
+            'patient.user',
+            'patientMember.patient.user',
+            'doctorProfile.user',
+            'specialization',
+            'payment'
+        ])->find($id);
 
-        $doctor = auth ()->user ()->doctorProfile;
+        if (!$consultation) {
+            return $this->sendError('Consultation not found', [], 404);
+        }
+
+        $doctor = auth()->user()->doctorProfile;
         if (!$doctor) {
-            return $this->errorResponse ('Not authorized', 403);
+            return $this->sendError('Not authorized', [], 403);
         }
 
-        if ($consultation->doctorProfile && $consultation->doctorProfile->id !== $doctor->id) {
-            return $this->errorResponse ('Consultation already assigned to another doctor', 403);
+        if ($consultation->doctor_id && $consultation->doctor_id !== $doctor->id) {
+            return $this->sendError('Consultation already assigned to another doctor', [], 403);
         }
 
-        $apiResponse = [
+        $response = [
             'id' => $consultation->id,
-            'specialization' => $consultation->specialization?->name ?? 'Unknown',
+            'specialization' => $consultation->specialization_name,
             'complaint' => $consultation->complaint ?? '',
             'pain_level' => $consultation->pain_level ?? 0,
-            'consultation_date' => $consultation->consultation_date,
+            'consultation_date' => $consultation->consultation_date?->toISOString(),
             'status' => $consultation->consultation_status ?? 'pending',
             'patient' => [
-                'name' => $consultation->patient->user?->name
-                    ?? $consultation->patientMember?->name
-                        ?? 'Unknown',
+                'id' => $consultation->patient_id ?? $consultation->patient_member_id,
+                'type' => $consultation->patient_id ? 'direct' : 'member',
+                'name' => $consultation->patient_name,
             ],
-            'doctor' => $consultation->doctorProfile?->user?->name ?? null,
-            'assign_at' => $consultation->assign_at,
+            'doctor' => $consultation->doctor_name,
+            'assign_at' => $consultation->assign_at?->toISOString(),
             'assign_application' => $consultation->assign_application,
+            'payment_status' => $consultation->payment?->status ?? 'unpaid',
+            'fee_amount' => $consultation->fee_amount ?? 0,
+            'final_amount' => $consultation->final_amount ?? 0,
         ];
-
-        return $this->sendResponse ($apiResponse, __ ('Consultation View Details'));
+        return $this->sendResponse($response, 'Consultation details retrieved successfully');
     }
-
-    public function getNotifiableUserAttribute()
-    {
-        if ($this->patient_id) {
-            return $this->patient?->user;
-        }
-        if ($this->patient_member_id) {
-            return $this->patientMember?->patient?->user;
-        }
-        return null;
-    }
-    // Simplified Accept function
-    public function accept(Consultation $consultation)
+    /**
+     * Accept a consultation
+     */
+    public function accept($id)
     {
         try {
-            DB::transaction(function () use (&$consultation) {
+            $consultation = Consultation::with(['payment', 'doctorProfile.user'])->find($id);
 
-                // Check if already assigned
+            if (!$consultation) {
+                return $this->sendError('Consultation not found', [], 404);
+            }
+
+            DB::transaction(function () use ($consultation) {
                 if ($consultation->doctor_id) {
                     throw new \Exception('This consultation has already been assigned.');
                 }
 
-                // Get authenticated doctor
                 $doctor = auth()->user()->doctorProfile;
                 if (!$doctor) {
                     throw new \Exception('Authenticated user has no doctor profile.');
                 }
 
-                // Check payment
-                $hasPaid = $consultation->payment()->where('status', 'completed')->exists();
-                if (!$hasPaid) {
-                    throw new \Exception('Payment not completed for this consultation. Cannot accept.');
+                if (!$consultation->is_paid) {
+                    throw new \Exception('Payment not completed. Cannot accept consultation.');
                 }
-                // Assign consultation
+
                 $consultation->doctor_id = $doctor->id;
                 $consultation->consultation_status = 'monitoring';
-                $consultation->assign_application = $doctor->name ?? $doctor->user?->name ?? 'Unknown';
+                $consultation->assign_application = $doctor->user?->name ?? 'Unknown Doctor';
                 $consultation->assign_at = now();
                 $consultation->save();
 
-                // Send notification to the right user
-                $userToNotify = $consultation->notifiable_user;
-                if ($userToNotify) {
-                    $userToNotify->notify(
-                        new \App\Notifications\ConsultationAssignedNotification($consultation)
-                    );
+                // Notify patient
+                if ($user = $consultation->notifiable_user) {
+                    try {
+                        $user->notify(
+                            new \App\Notifications\ConsultationAssignedNotification($consultation)
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Failed to send notification', [
+                            'consultation_id' => $consultation->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
                 }
             });
 
-            $consultation->refresh();
+            $consultation->refresh()->load('doctorProfile.user');
 
             return $this->sendResponse([
                 'consultation_id' => $consultation->id,
                 'doctor_id' => $consultation->doctor_id,
-                'assign_at' => $consultation->assign_at,
+                'doctor_name' => $consultation->doctor_name,
+                'assign_at' => $consultation->assign_at?->toISOString(),
                 'status' => $consultation->consultation_status,
-            ], __('Consultation Accepted'));
+            ], 'Consultation accepted successfully');
 
         } catch (\Exception $e) {
+            Log::error('Consultation acceptance failed', [
+                'consultation_id' => $consultation->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
             return $this->sendError($e->getMessage() ?? 'Something went wrong');
         }
     }

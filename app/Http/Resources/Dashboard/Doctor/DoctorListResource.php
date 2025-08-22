@@ -3,33 +3,26 @@
 namespace App\Http\Resources\Dashboard\Doctor;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
-/**
- * @property mixed $doctorProfile
- */
 class DoctorListResource extends JsonResource
 {
     public function toArray($request): array
     {
         $doctorProfile = $this->doctorProfile;
 
-        $completedCount = 0;
-
-        if ($doctorProfile) {
-            $completedCount = $doctorProfile->completedConsultations()
-                ->where('consultation_status', 'completed')
-                ->count();
-        }
         return [
             'id'           => $this->id,
             'name'         => $this->name,
             'email'        => $this->email,
-            'specialty'    => optional($doctorProfile)->specialization,
-            'consulted'    => $completedCount,
-            'subscription' => optional($doctorProfile)->subscription ?? 'No Sub',
-            'status'       => optional($doctorProfile)->verification_status,
+            'specialty'    => $doctorProfile?->specializations?->pluck('name')->implode(', '),
+            // Counts from withCount
+            'consulted'    => $this->assigned_consultations_count ?? 0,
+            'subscription' => $doctorProfile->subscription_status ?? 'No Sub',
+            'status'       => $doctorProfile->verification_status ?? 'unverified',
+            'profile_picture' => $doctorProfile && $doctorProfile->profile_picture
+                ? asset(Storage::url($doctorProfile->profile_picture))
+                : '',
         ];
     }
-
-
 }

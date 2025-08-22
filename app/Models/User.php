@@ -6,7 +6,6 @@ namespace App\Models;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * @method static create(mixed $validated, \Illuminate\Contracts\Auth\Authenticatable $user)
@@ -14,7 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class User extends Authenticatable
 {
 
-    use HasFactory, Notifiable, HasApiTokens;
+    use  Notifiable, HasApiTokens;
 
     protected $fillable = [
         'name',
@@ -72,6 +71,16 @@ class User extends Authenticatable
     {
         return $this->hasOne(DoctorProfile::class, 'user_id', 'id');
     }
+    // Get all consultations assigned to this doctor
+    public function assignedConsultations()
+    {
+        return $this->hasMany(Consultation::class, 'doctor_id');
+    }
+    // Count of assigned consultations
+    public function assignedConsultationsCount(): int
+    {
+        return $this->assignedConsultations()->count();
+    }
     public function patient(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Patient::class);
@@ -84,8 +93,8 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserPersonalDetail::class);
     }
-    //check user complete the profile
-    public function hasCompletedProfile(): bool
+    //check user complete the profile doctor
+    public function hasCompletedDoctorProfile(): bool
     {
         // Check if personal details are filled
         $personal = $this->personalDetails;
@@ -99,4 +108,33 @@ class User extends Authenticatable
         }
         return true;
     }
+
+    //check user complete the profile patient
+    public function hasCompletedProfile(): bool
+    {
+        if ($this->user_type === 'doctor' && $this->doctorProfile) {
+            return $this->hasCompletedDoctorProfile();
+        }
+
+        if ($this->user_type === 'patient' && $this->patient) {
+            $requiredFields = [
+                'date_of_birth',
+                'cpf',
+                'gender',
+                'mother_name',
+                'zipcode',
+                'house_number',
+                'road',
+                'neighborhood',
+                'city',
+                'state',
+            ];
+
+            return !collect($requiredFields)->contains(fn($field) => empty($this->patient->{$field}));
+        }
+
+        return false;
+    }
+
+
 }

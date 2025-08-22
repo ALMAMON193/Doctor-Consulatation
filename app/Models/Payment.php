@@ -13,9 +13,8 @@ class Payment extends Model
         'consultation_id', 'payment_intent_id', 'amount', 'currency',
         'status','payment_method', 'failure_reason', 'paid_at'
     ];
-
     public function consultation(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Consultation::class);
+        return $this->belongsTo(Consultation::class, 'consultation_id');
     }
 }

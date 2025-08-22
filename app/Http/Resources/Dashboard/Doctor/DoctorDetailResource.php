@@ -14,10 +14,12 @@ class DoctorDetailResource extends JsonResource
             'email'     => $this->email,
             'phone'     => $this->phone_number,
             'specialty' => optional($this->doctorProfile)->specialization,
-            'consulted' => optional($this->doctorProfile)->consulted ?? 0,
+            'consulted_consultation' => $this->assigned_consultations_count ?? 0,
+            'completed_consultation' => $this->completed_consultations_count ?? 0,
+            'cancel_consultation' => $this->cancel_consultation ?? 0,
             'subscription' => optional($this->doctorProfile)->subscription ?? "No Sub",
             'status'    => optional($this->doctorProfile)->verification_status,
-
+            'ratting' =>  1020,
             // Fix here by using toArray()
             'doctor_profile'   => optional($this->doctorProfile)?->toArray(),
             'address'          => optional($this->address)?->toArray(),

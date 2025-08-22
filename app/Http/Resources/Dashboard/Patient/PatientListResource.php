@@ -4,6 +4,7 @@ namespace App\Http\Resources\Dashboard\Patient;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class PatientListResource extends JsonResource
 {
@@ -19,7 +20,7 @@ class PatientListResource extends JsonResource
             'member_count'            => optional($this->patient)->family_member_of_patient ?? 0,
             'verification_status'     => optional($this->patient)->verification_status ?? 'N/A',
             'profile_photo' => $this->patient && $this->patient->profile_photo
-                ? asset($this->patient->profile_photo)
+                ? Storage::url($this->patient->profile_photo)
                 : '',
         ];
     }
