@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
-use App\Models\{Consultation, DoctorProfile};
+use App\Models\{Consultation, DoctorProfile,Specialization};
 
 class PatientHomeResource extends JsonResource
 {
@@ -49,9 +49,8 @@ class PatientHomeResource extends JsonResource
                 'next_step'      => $nextStep,
                 'complete'       => $complete,
             ],
-            'all_specialists' => [
-                'specialization' => $this->getAllSpecializations(),
-            ],
+            'all_specialists' =>
+                 $this->getAllSpecializations(),
         ];
     }
     protected function getActiveDoctorsCount(): int
@@ -82,13 +81,8 @@ class PatientHomeResource extends JsonResource
     }
     protected function getAllSpecializations(): array
     {
-        return DoctorProfile::whereNotNull('specialization')
-            ->pluck('specialization')
-            ->flatMap(function ($specialization) {
-                // decode json if stored as json string
-                $values = is_string($specialization) ? json_decode($specialization, true) : $specialization;
-                return (array) $values;
-            })
+        return Specialization::whereHas('doctors')
+            ->pluck('name')
             ->unique()
             ->values()
             ->toArray();

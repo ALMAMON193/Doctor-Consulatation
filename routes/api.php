@@ -116,7 +116,7 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
 Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(function () {
 
     //Home
-    Route::get('/', [HomeApiController::class, 'index']);   // Fetch Home Data
+    Route::get('/home', [HomeApiController::class, 'index']);   // Fetch Home Data
 
     // Profile
     Route::post('create-profile',          [PatientProfileApiController::class, 'createProfile']);     // Create profile
@@ -175,7 +175,6 @@ Route::get('payment/success', [ConsultationBookingController::class, 'success'])
 Route::get('payment/fail',    [ConsultationBookingController::class, 'fail'])->name('payment.fail');       // Payment fail
 Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature'); // Stripe webhook
 Route::get('stripe/publish-key',[ConsultationBookingController::class, 'publishKey']);    //published key in stripe
-
 
 
 /*

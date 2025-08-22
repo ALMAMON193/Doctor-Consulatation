@@ -14,4 +14,13 @@ class Specialization extends Model
         'name',
         'price'
     ];
+    public function doctors()
+    {
+        return $this->belongsToMany(
+            DoctorProfile::class,        // related model
+            'doctor_specializations',    // pivot table
+            'specialization_id',         // foreign key on pivot
+            'doctor_id'                  // related key on pivot
+        );
+    }
 }
