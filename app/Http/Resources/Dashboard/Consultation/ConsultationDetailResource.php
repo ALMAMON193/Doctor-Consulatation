@@ -7,11 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ConsultationDetailResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
+
     public function toArray(Request $request): array
     {
         return [
@@ -36,13 +32,11 @@ class ConsultationDetailResource extends JsonResource
             'patient_member_information' => $this->patientMember ? [
                 'id' => $this->patientMember->id,
                 'name' => $this->patientMember->name,
-                'relation' => $this->patientMember->relation,
             ] : [],
 
             'doctor_information' => $this->doctorProfile ? [
                 'id' => $this->doctorProfile->id,
                 'name' => $this->doctorProfile->user->name ?? null,
-                'specialization' => $this->doctorProfile->specialization ?? null,
             ] : [],
         ];
     }

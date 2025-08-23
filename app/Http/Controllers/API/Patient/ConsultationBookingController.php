@@ -134,8 +134,7 @@ class ConsultationBookingController extends Controller
                     $payment = Payment::where('payment_intent_id', $intentId)->first();
 
                     if ($payment && $payment->status !== 'completed') {
-                        $payment->update(['status' => 'completed', 'paid_at' => now()]);
-
+                        $payment->update(['status' => 'paid', 'paid_at' => now()]);
                         $consultation = Consultation::find($payment->consultation_id);
                         if ($consultation) {
                             $consultation->update(['payment_status' => 'paid']);
@@ -151,7 +150,6 @@ class ConsultationBookingController extends Controller
                                     $q->where('specializations.id', $consultation->specialization_id);
                                 })
                                 ->get();
-
                             foreach ($doctors as $doc) {
                                 if ($doc->user) {
                                     $doc->user->notify(new ConsultationBookedNotification($consultation));
@@ -160,12 +158,10 @@ class ConsultationBookingController extends Controller
                         }
                     }
                     break;
-
                 case 'payment_intent.payment_failed':
                     Log::warning('Payment failed', ['intent_id' => $event->data->object->id]);
                     break;
             }
-
             return response()->json(['status' => 'success']);
 
         } catch (Exception $e) {

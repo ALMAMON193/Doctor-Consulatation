@@ -163,7 +163,6 @@ Route::prefix('patient/medical-record')->middleware(['patient', 'auth:sanctum'])
     Route::post('update/{id}',[MedicalApiRecordController::class, 'updateMedicalRecord']); // Update medical record
     Route::delete('delete/{id}',[MedicalApiRecordController::class, 'destroyMedicalRecord']); // Delete medical record
 });
-
 /*
 |--------------------------------------------------------------------------
 | Payments
@@ -173,9 +172,7 @@ Route::get('payment/success', [ConsultationBookingController::class, 'success'])
 Route::get('payment/fail',    [ConsultationBookingController::class, 'fail'])->name('payment.fail');       // Payment fail
 Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature'); // Stripe webhook
 Route::get('stripe/publish-key',[ConsultationBookingController::class, 'publishKey']);    //published key in stripe
-Route::post('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);    //published key in stripe
-
-
+Route::get('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);    //published key in stripe
 
 /*
 |--------------------------------------------------------------------------
@@ -183,7 +180,6 @@ Route::post('check-coupon',[ConsultationBookingController::class, 'checkCoupon']
 |--------------------------------------------------------------------------
 */
 Route::get('specializations', [DoctorUserApiController::class, 'specializations']);  // List all specializations
-
 
 // WebSocket Broadcast (Laravel Echo / Pusher)
 Broadcast::routes(['middleware' => ['auth:sanctum']]);

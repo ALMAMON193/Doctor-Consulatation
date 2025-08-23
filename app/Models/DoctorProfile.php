@@ -42,7 +42,7 @@ class DoctorProfile extends Model
         return $this->hasMany(Rating::class, 'doctor_id');
     }
 
-    public function consultations()
+    public function consultations(): \Illuminate\Database\Eloquent\Relations\HasMany|DoctorProfile
     {
         return $this->hasMany(\App\Models\Consultation::class, 'doctor_id');
     }

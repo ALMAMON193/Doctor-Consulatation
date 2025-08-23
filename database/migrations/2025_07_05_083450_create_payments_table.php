@@ -22,7 +22,6 @@ return new class extends Migration
             $table->text('failure_reason')->nullable();
             $table->dateTime('paid_at')->nullable();
             $table->timestamps();
-
             $table->foreign('consultation_id')->references('id')->on('consultations')->onDelete('cascade');
         });
     }
