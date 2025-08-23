@@ -18,6 +18,7 @@ class Consultation extends Model
         'complaint',
         'pain_level',
         'consultation_date',
+        'consultation_type',
         'payment_status',
         'doctor_id',
         'consultation_status',

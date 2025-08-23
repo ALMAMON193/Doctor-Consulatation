@@ -68,6 +68,7 @@ class ConsultationBookingController extends Controller
                 'complaint' => $validated['complaint'] ?? null,
                 'pain_level' => $validated['pain_level'] ?? 0,
                 'consultation_date' => $validated['consultation_date'] ?? now(),
+                'consultation_type' => $validated['consultation_type'],
                 'payment_status' => $validated['payment_status'] ?? 'pending',
             ]);
 

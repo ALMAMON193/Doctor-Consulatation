@@ -7,10 +7,15 @@ use App\Http\Requests\Dashboard\Doctor\StoreRequest;
 use App\Http\Resources\Dashboard\Doctor\DoctorDetailResource;
 use App\Http\Resources\Dashboard\Doctor\DoctorListResource;
 use App\Http\Resources\Dashboard\Patient\PatientListResource;
+use App\Mail\DoctorAccountCreatedAdmin;
+use App\Mail\PatientAccountCreatedAdmin;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class DoctorApiController extends Controller
 {
@@ -124,8 +129,12 @@ class DoctorApiController extends Controller
         }
 
         $validated = $request->validated();
-        $validated['user_type'] = 'doctor'; // ✅ Set user_type after validation
-        $doctor = User::create($validated); // ✅ Only pass one argument
+        $plainPassword = Str::random(10);                    //  Generate random plain password
+        $validated['password'] = Hash::make($plainPassword);       //  Save hashed password to DB
+        $patient = User::create($validated);                      //  Create patient
+        Mail::to($patient->email)->send(
+            new DoctorAccountCreatedAdmin($patient->email, $plainPassword)       //  Send plain password by email
+        );
 
         return $this->sendResponse([], __('Doctor created successfully.'));
     }

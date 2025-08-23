@@ -16,6 +16,7 @@ class BookConsultationRequest extends FormRequest
             'complaint' => 'nullable|string|max:2000',
             'pain_level' => 'nullable|integer|between:0,10',
             'consultation_date' => 'nullable|date|after_or_equal:today',
+            'consultation_type' => 'required|in:home,chat',
             'email' => 'nullable|email',
             'payment_status' => 'nullable|in:pending,paid,completed,cancelled',
         ];

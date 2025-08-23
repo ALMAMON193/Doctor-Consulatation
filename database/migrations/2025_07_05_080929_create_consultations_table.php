@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('complaint')->nullable();
             $table->integer('pain_level')->nullable()->default(0);
             $table->date('consultation_date')->nullable();
+            $table->enum('consultation_type',['home','chat'])->default('chat');
             $table->enum('payment_status', ['pending', 'paid', 'completed', 'cancelled'])->default('pending');
             $table->enum('consultation_status', ['pending', 'completed', 'cancelled','monitoring'])->default('pending');
             // 🔹 Assignment fields

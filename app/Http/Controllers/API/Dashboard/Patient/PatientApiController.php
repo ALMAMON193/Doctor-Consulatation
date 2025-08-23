@@ -7,11 +7,15 @@ use App\Http\Requests\Dashboard\Doctor\StoreRequest;
 use App\Http\Resources\Dashboard\Patient\DetailsPatientResource;
 use App\Http\Resources\Dashboard\Patient\PatientListResource;
 
+use App\Mail\PatientAccountCreatedAdmin;
 use App\Models\Patient;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class PatientApiController extends Controller
 {
@@ -34,10 +38,8 @@ class PatientApiController extends Controller
                 });
             })
             ->paginate($perPage);
-
         // Transform collection using resource
         $data = PatientListResource::collection($patients->items());
-
         // Pagination info
         $pagination = [
             'total' => $patients->total(),
@@ -84,27 +86,27 @@ class PatientApiController extends Controller
         if (!$patient) {
             return $this->sendError('Patient not found', [], 404);
         }
-
         return $this->sendResponse(new DetailsPatientResource($patient), 'Patient details fetched successfully');
     }
-
 
     public function createPatient(StoreRequest $request): \Illuminate\Http\JsonResponse
     {
         $user = auth('sanctum')->user();
-
         if (!$user) {
             return $this->sendError(__('User not authenticated.'), [], 401);
         }
-
         if ($user->user_type !== 'admin') {
             return $this->sendError(__('Only Admin can access this page'), [], 403);
         }
-
         $validated = $request->validated();
-        $patient = User::create($validated); // ✅ Only pass one argument
+        $plainPassword = Str::random(10);                    //  Generate random plain password
+        $validated['password'] = Hash::make($plainPassword);       //  Save hashed password to DB
+        $patient = User::create($validated);                      //  Create patient
+        Mail::to($patient->email)->send(
+            new PatientAccountCreatedAdmin($patient->email, $plainPassword)       //  Send plain password by email
+        );
 
-        return $this->sendResponse([], __('Patient created successfully.'));
+        return $this->sendResponse([], __('Patient created successfully and credentials emailed.'));
     }
 
 }

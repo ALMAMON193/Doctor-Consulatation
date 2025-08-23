@@ -13,9 +13,11 @@ class DetailsPatientResource extends JsonResource
 
         return [
             'consultation_statistics' => [
-                'all_consultation' => $this->consultations->count(),
-                'completed' => $this->consultations->where('consultation_status', 'completed')->count(),
-                'canceled' => $this->consultations->where('consultation_status', 'cancelled')->count(),
+                'all_consultation'      => $this->consultations->count(),
+                'completed'             => $this->consultations->where('consultation_status', 'completed')->count(),
+                'canceled'              => $this->consultations->where('consultation_status', 'cancelled')->count(),
+                'home_consultation'     =>$this->consultations->where('consultation_status', 'home')->count(),
+                'chat_consultation'     =>$this->consultations->where('consultation_status', 'chat')->count(),
             ],
             'family_member' => $this->members->map(function ($member) {
                 return [
