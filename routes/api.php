@@ -115,6 +115,7 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
 
     //Home
     Route::get('/home', [HomeApiController::class, 'index']);   // Fetch Home Data
+    Route::post('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);   //check coupon
 
     // Profile
     Route::post('create-profile',          [PatientProfileApiController::class, 'createProfile']);     // Create profile
@@ -172,7 +173,6 @@ Route::get('payment/success', [ConsultationBookingController::class, 'success'])
 Route::get('payment/fail',    [ConsultationBookingController::class, 'fail'])->name('payment.fail');       // Payment fail
 Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature'); // Stripe webhook
 Route::get('stripe/publish-key',[ConsultationBookingController::class, 'publishKey']);    //published key in stripe
-Route::get('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);    //published key in stripe
 
 /*
 |--------------------------------------------------------------------------

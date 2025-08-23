@@ -182,28 +182,55 @@ class ConsultationBookingController extends Controller
     public function checkCoupon(Request $request): JsonResponse
     {
         try {
+            // Validate request
             $request->validate([
                 'specialization_id' => 'required|exists:specializations,id',
-                'coupon_code' => 'nullable|string'
+                'coupon_code' => 'required|string',
             ]);
-            $specialization = Specialization::findOrFail($request->specialization_id);
-            $feeAmount = (float) $specialization->price;
 
-            $feeDetails = \App\Services\ConsultationService::applyCoupon(
-                $request->coupon_code ?? null,
-                null, // patient_id not required here
-                null, // patient_member_id not required here
-                $feeAmount
-            );
+            // Fetch specialization price
+            $specialization = \App\Models\Specialization::findOrFail($request->specialization_id);
+            $originalPrice = (float) $specialization->price;
 
+            // Fetch coupon
+            $coupon = \App\Models\Coupon::where('code', $request->coupon_code)
+                ->where('status', 'active')
+                ->first();
+
+            if (!$coupon) {
+                return $this->sendError(__('Invalid or expired coupon'), ['coupon_code' => $request->coupon_code]);
+            }
+
+            // Calculate discount
+            $discount = 0;
+            $discountType = null;
+
+            if ($coupon->discount_percentage > 0) {
+                $discount = ($originalPrice * $coupon->discount_percentage) / 100;
+                $discountType = 'percentage';
+            } elseif ($coupon->discount_amount > 0) {
+                $discount = $coupon->discount_amount;
+                $discountType = 'amount';
+            }
+
+            $finalPrice = max($originalPrice - $discount, 0);
+
+            // Return response
             return $this->sendResponse([
                 'specialization_id' => $specialization->id,
                 'specialization_name' => $specialization->name,
-                'original_price' => $feeAmount,
-                'discount' => $feeDetails['discount'],
-                'final_price' => $feeDetails['final'],
-                'coupon_code' => $feeDetails['coupon_code'],
-            ], __('Specialization & coupon details fetched'));
+                'original_price' => $originalPrice,
+                'discount_type' => $discountType, // "percentage" or "amount"
+                'discount_value' => $discount,    // actual discount applied
+                'final_price' => $finalPrice,
+                'coupon_code' => $coupon->code,
+                'valid_from' => $coupon->valid_from,
+                'valid_to' => $coupon->valid_to,
+                'usage_limit' => $coupon->usage_limit,
+                'used_count' => $coupon->used_count,
+                'status' => $coupon->status,
+            ], __('Coupon details fetched successfully'));
+
         } catch (Exception $e) {
             return $this->sendError(__('Something went wrong'), ['error' => $e->getMessage()]);
         }
