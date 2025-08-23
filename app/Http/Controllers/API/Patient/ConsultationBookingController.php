@@ -4,7 +4,6 @@ namespace App\Http\Controllers\API\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookConsultationRequest;
-use App\Http\Resources\PaymentSuccessResource;
 use App\Notifications\ConsultationBookedNotification;
 use App\Traits\ApiResponse;
 use App\Models\{Consultation, PatientMember, Payment, Specialization, DoctorProfile};
@@ -12,8 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Stripe\Checkout\Session;
 use Stripe\Stripe;
+use Stripe\PaymentIntent;
 use App\Services\ConsultationService;
 use Exception;
 
@@ -23,41 +22,51 @@ class ConsultationBookingController extends Controller
 
     public function __construct()
     {
-        Stripe::setApiKey(config('services.stripe.secret')); // Set Stripe API key
+        Stripe::setApiKey(config('services.stripe.secret')); // Stripe Secret Key
     }
-    // Book consultation and create Stripe checkout session
+
+    /**
+     * Create Consultation & PaymentIntent for Flutter
+     */
     public function book(BookConsultationRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validated(); // Validate request
-            $authUser = auth()->user(); // Get authenticated user
+            $validated = $request->validated();
+            $authUser = auth()->user();
 
-            if (!empty($validated['patient_id']) && $authUser->patient->id !== $validated['patient_id'])
-                return $this->sendError(__('Unauthorized access to patient record.')); // Check patient ownership
-
-            if (!empty($validated['patient_member_id'])) { // Check member ownership
-                $member = PatientMember::find($validated['patient_member_id']);
-                if ($member->patient_id !== $authUser->patient->id)
-                    return $this->sendError(__('Unauthorized access to patient member record.'));
+            // ✅ Ensure patient ownership
+            if (!empty($validated['patient_id']) && $authUser->patient->id !== $validated['patient_id']) {
+                return $this->sendError(__('Unauthorized access to patient record.'));
             }
 
-            if (empty($validated['patient_id']) && empty($validated['patient_member_id']))
-                return response()->json(['error' => 'Patient or Patient Member is required'], 422); // Require patient
+            if (!empty($validated['patient_member_id'])) {
+                $member = PatientMember::find($validated['patient_member_id']);
+                if (!$member || $member->patient_id !== $authUser->patient->id) {
+                    return $this->sendError(__('Unauthorized access to patient member record.'));
+                }
+            }
 
-            $specialization = Specialization::findOrFail($validated['specialization_id']); // Get specialization
-            $feeAmount = (float) $specialization->price; // Dynamic fee
+            if (empty($validated['patient_id']) && empty($validated['patient_member_id'])) {
+                return response()->json(['error' => 'Patient or Patient Member is required'], 422);
+            }
 
-            $feeDetails = ConsultationService::applyCoupon( // Apply coupon
+            // ✅ Specialization & Fee
+            $specialization = Specialization::findOrFail($validated['specialization_id']);
+            $feeAmount = (float) $specialization->price;
+
+            $feeDetails = ConsultationService::applyCoupon(
                 $validated['coupon_code'] ?? null,
                 $validated['patient_id'] ?? null,
                 $validated['patient_member_id'] ?? null,
                 $feeAmount
             );
 
-            if ($feeDetails['error'])
-                return response()->json(['error' => $feeDetails['error']], 422); // Coupon error
+            if ($feeDetails['error']) {
+                return response()->json(['error' => $feeDetails['error']], 422);
+            }
 
-            $consultation = Consultation::create([ // Create consultation
+            // ✅ Create Consultation
+            $consultation = Consultation::create([
                 'patient_id' => $validated['patient_id'] ?? null,
                 'patient_member_id' => $validated['patient_member_id'] ?? null,
                 'specialization_id' => $validated['specialization_id'],
@@ -69,73 +78,74 @@ class ConsultationBookingController extends Controller
                 'pain_level' => $validated['pain_level'] ?? 0,
                 'consultation_date' => $validated['consultation_date'] ?? now(),
                 'consultation_type' => $validated['consultation_type'],
-                'payment_status' => $validated['payment_status'] ?? 'pending',
+                'payment_status' => 'pending',
             ]);
 
-            $payment = Payment::create([ // Create payment
+            // ✅ Create Payment
+            $payment = Payment::create([
                 'consultation_id' => $consultation->id,
                 'amount' => (float) $feeDetails['final'],
                 'currency' => 'usd',
                 'status' => 'pending',
             ]);
 
-            $productName = 'Consultation'; // Product name
-            if ($feeDetails['message']) $productName .= " ({$feeDetails['message']})"; // Add coupon info
-
-            $session = Session::create([ // Stripe session
-                'payment_method_types' => ['card'],
-                'line_items' => [[
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'product_data' => ['name' => $productName],
-                        'unit_amount' => (int) round($feeDetails['final'] * 100),
-                    ],
-                    'quantity' => 1,
-                ]],
-                'mode' => 'payment',
-                'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}', // Success redirect
-                'cancel_url' => route('payment.fail'),
+            // ✅ Create PaymentIntent
+            $intent = PaymentIntent::create([
+                'amount' => (int) round($feeDetails['final'] * 100),
+                'currency' => 'usd',
+                'payment_method_types' => [$validated['payment_method'] ?? 'card'],
                 'metadata' => [
                     'payment_id' => $payment->id,
                     'consultation_id' => $consultation->id,
                     'coupon_code' => $feeDetails['coupon_code'],
-                    'discount_amount' => $feeDetails['discount'],
                 ],
-                'customer_email' => $validated['email'] ?? null,
             ]);
+            // Save Stripe PaymentIntent ID
+            $payment->update(['payment_intent_id' => $intent->id]);
 
-            $payment->update(['payment_intent_id' => $session->id]); // Save session ID
-            return $this->sendResponse(['checkout_url' => $session->url], __('Checkout session created')); // Return checkout URL
+            return $this->sendResponse([
+                'client_secret' => $intent->client_secret, // Flutter will use this
+                'payment_id' => $payment->id,
+                'consultation_id' => $consultation->id,
+                'amount' => $payment->amount,
+            ], __('PaymentIntent created successfully'));
 
         } catch (Exception $e) {
-            Log::error('Booking Error: ' . $e->getMessage()); // Log error
-            return $this->sendError(__('Something Went to Wrong', ['error' => $e->getMessage()])); // Return error
+            Log::error('Booking Error: ' . $e->getMessage());
+            return $this->sendError(__('Something went wrong'), ['error' => $e->getMessage()]);
         }
     }
-    // Handle Stripe webhook for completed payment
+
+    /**
+     * Stripe Webhook - update payment status
+     */
     public function handleWebhook(Request $request): JsonResponse
     {
-        $payload = $request->getContent(); // Get payload
-        $signature = $request->header('Stripe-Signature'); // Get signature
-        $secret = config('services.stripe.webhook_secret'); // Webhook secret
+        $payload = $request->getContent();
+        $signature = $request->header('Stripe-Signature');
+        $secret = config('services.stripe.webhook_secret');
 
         try {
-            $event = \Stripe\Webhook::constructEvent($payload, $signature, $secret); // Verify event
-            $payment = null;
+            $event = \Stripe\Webhook::constructEvent($payload, $signature, $secret);
 
             switch ($event->type) {
-                case 'checkout.session.completed':
-                    $sessionId = $event->data->object->id; // Get session ID
-                    $payment = Payment::where('payment_intent_id', $sessionId)->first(); // Find payment
+                case 'payment_intent.succeeded':
+                    $intentId = $event->data->object->id;
+                    $payment = Payment::where('payment_intent_id', $intentId)->first();
+
                     if ($payment && $payment->status !== 'completed') {
-                        $payment->update(['status' => 'completed', 'paid_at' => now()]); // Mark completed
+                        $payment->update(['status' => 'completed', 'paid_at' => now()]);
 
-                        $consultation = Consultation::find($payment->consultation_id); // Get consultation
+                        $consultation = Consultation::find($payment->consultation_id);
                         if ($consultation) {
-                            $consultation->update(['payment_status' => 'paid']); // Update consultation
-                            if ($consultation->patient_id) DB::table('patients')->where('id', $consultation->patient_id)->increment('consulted'); // Increment consulted
-                            elseif ($consultation->patient_member_id) $consultation->patientMember?->patient?->increment('consulted'); // Member increment
+                            $consultation->update(['payment_status' => 'paid']);
+                            if ($consultation->patient_id) {
+                                DB::table('patients')->where('id', $consultation->patient_id)->increment('consulted');
+                            } elseif ($consultation->patient_member_id) {
+                                $consultation->patientMember?->patient?->increment('consulted');
+                            }
 
+                            // Notify doctors
                             $doctors = DoctorProfile::with('user')
                                 ->whereHas('specializations', function ($q) use ($consultation) {
                                     $q->where('specializations.id', $consultation->specialization_id);
@@ -144,54 +154,63 @@ class ConsultationBookingController extends Controller
 
                             foreach ($doctors as $doc) {
                                 if ($doc->user) {
-                                    Log::info('Sending notification to user_id: ' . $doc->user->id);
                                     $doc->user->notify(new ConsultationBookedNotification($consultation));
                                 }
                             }
-
                         }
                     }
                     break;
 
                 case 'payment_intent.payment_failed':
-                    Log::warning('Payment failed', ['session_id' => $event->data->object->id]); // Log failed
+                    Log::warning('Payment failed', ['intent_id' => $event->data->object->id]);
                     break;
             }
 
-            return response()->json(['status' => 'success']); // Return success
+            return response()->json(['status' => 'success']);
 
         } catch (Exception $e) {
-            Log::error('Webhook error: ' . $e->getMessage()); // Log webhook error
-            return response()->json(['error' => 'Webhook failed'], 500); // Return error
+            Log::error('Webhook error: ' . $e->getMessage());
+            return response()->json(['error' => 'Webhook failed'], 500);
         }
     }
-    // Handle payment success redirect (works for web)
-    public function success(Request $request)
-    {
-        $sessionId = $request->query('session_id'); // Get session ID
-        if (!$sessionId) return redirect()->route('home')->with('error', 'Session ID missing'); // Redirect home
 
-        $payment = Payment::where('payment_intent_id', $sessionId)->first(); // Find payment
-        if (!$payment) return redirect()->route('home')->with('error', 'Payment not found'); // Redirect if not found
-
-        $consultation = Consultation::with(['patient', 'patientMember'])->find($payment->consultation_id); // Get consultation
-        if (!$consultation) return redirect()->route('home')->with('error', 'Consultation not found'); // Redirect if missing
-
-        return $this->sendResponse ($consultation,__('Payment Successfully')); // Render json
-    }
-    // Payment cancel redirect
-    public function cancel(): JsonResponse
-    {
-        return $this->sendResponse([], __('Payment cancelled')); // Cancel message
-    }
-    //stripe publish key fetch
+    /**
+     * Get Stripe Publishable Key for Flutter
+     */
     public function publishKey()
     {
-        $publishableKey = env('STRIPE_PUBLISHABLE_KEY');
-        $apiResponse = [
-            'publishable_key' => $publishableKey,
-        ];
-        return $this->sendResponse($apiResponse, __('Publish key fetched'));
-
+        return $this->sendResponse([
+            'publishable_key' => env('STRIPE_PUBLISHABLE_KEY'),
+        ], __('Publish key fetched'));
     }
+    public function checkCoupon(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'specialization_id' => 'required|exists:specializations,id',
+                'coupon_code' => 'nullable|string'
+            ]);
+            $specialization = Specialization::findOrFail($request->specialization_id);
+            $feeAmount = (float) $specialization->price;
+
+            $feeDetails = \App\Services\ConsultationService::applyCoupon(
+                $request->coupon_code ?? null,
+                null, // patient_id not required here
+                null, // patient_member_id not required here
+                $feeAmount
+            );
+
+            return $this->sendResponse([
+                'specialization_id' => $specialization->id,
+                'specialization_name' => $specialization->name,
+                'original_price' => $feeAmount,
+                'discount' => $feeDetails['discount'],
+                'final_price' => $feeDetails['final'],
+                'coupon_code' => $feeDetails['coupon_code'],
+            ], __('Specialization & coupon details fetched'));
+        } catch (Exception $e) {
+            return $this->sendError(__('Something went wrong'), ['error' => $e->getMessage()]);
+        }
+    }
+
 }

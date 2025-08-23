@@ -72,7 +72,6 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('coupon-details/{id}',  [CouponController::class, 'show']);               // Coupon details
 });
 
-
 /*
 |--------------------------------------------------------------------------
 | Doctor Panel
@@ -106,7 +105,6 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::get('notifications',        [DoctorNotificationController::class, 'index']);          // List notifications
     Route::post('notifications/{id}/read',[DoctorNotificationController::class, 'markAsRead']);  // Mark as read
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -175,6 +173,8 @@ Route::get('payment/success', [ConsultationBookingController::class, 'success'])
 Route::get('payment/fail',    [ConsultationBookingController::class, 'fail'])->name('payment.fail');       // Payment fail
 Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature'); // Stripe webhook
 Route::get('stripe/publish-key',[ConsultationBookingController::class, 'publishKey']);    //published key in stripe
+Route::post('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);    //published key in stripe
+
 
 
 /*

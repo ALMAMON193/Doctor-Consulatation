@@ -59,6 +59,8 @@ class ConsultationApiController extends Controller
             'completeConsultation' => Consultation::where('consultation_status', 'completed')->count(),
             'cancelConsultation' => Consultation::where('consultation_status', 'cancel')->count(),
             'activeConsultation' => Consultation::where('consultation_status', 'pending')->count(),
+            'home_consultation' => Consultation::where('consultation_type', 'home')->count(),
+            'chat_consultation' => Consultation::where('consultation_type', 'chat')->count(),
             'activeDoctors' => 0, // You can update this logic if you want to count active doctors
         ];
     }
