@@ -36,12 +36,12 @@ class ConsultationRecordApiController extends Controller
                     ->orWhereIn('patient_member_id', $memberIds);
             })
             ->orderByDesc('created_at')
+            ->where('payment_status','paid')
             ->get();
 
         $ongoing = ConsultationResource::collection(
             $consultations->where('consultation_status', 'pending')->values()
         );
-
         $closed = ConsultationResource::collection(
             $consultations->where('consultation_status', 'completed')->values()
         );

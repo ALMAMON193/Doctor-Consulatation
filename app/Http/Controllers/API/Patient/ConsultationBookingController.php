@@ -134,7 +134,7 @@ class ConsultationBookingController extends Controller
                     $payment = Payment::where('payment_intent_id', $intentId)->first();
 
                     if ($payment && $payment->status !== 'completed') {
-                        $payment->update(['status' => 'paid', 'paid_at' => now()]);
+                        $payment->update(['status' => 'completed', 'paid_at' => now()]);
                         $consultation = Consultation::find($payment->consultation_id);
                         if ($consultation) {
                             $consultation->update(['payment_status' => 'paid']);

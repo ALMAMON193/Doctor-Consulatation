@@ -37,6 +37,7 @@ class DoctorProfile extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
     public function ratings(): \Illuminate\Database\Eloquent\Relations\HasMany|DoctorProfile
     {
         return $this->hasMany(Rating::class, 'doctor_profile_id');
@@ -46,9 +47,14 @@ class DoctorProfile extends Model
     {
         return $this->hasMany(\App\Models\Consultation::class, 'doctor_id');
     }
+
     public function specializations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(\App\Models\Specialization::class, 'doctor_specializations', 'doctor_id', 'specialization_id');
     }
 
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class, 'receiver_id', 'user_id');
+    }
 }

@@ -16,6 +16,7 @@ class ConsultationResource extends JsonResource
     {
         return [
             'id'                 => $this->id,
+            'doctor_id'          =>$this->doctorProfile->id,
             'doctor_name'        => optional($this->doctorProfile->user)->name,
             'doctor_image'       => optional($this->doctorProfile->user)->profile_picture
                 ? asset(optional($this->doctorProfile->user)->profile_picture)
@@ -36,4 +37,3 @@ class ConsultationResource extends JsonResource
         return number_format($avg ?? 0, 1, '.', '');
     }
 }
-

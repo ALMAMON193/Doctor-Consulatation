@@ -13,26 +13,19 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('sender_doctor_profile_id')->nullable();
-            $table->unsignedBigInteger('sender_patient_id')->nullable();
-            $table->unsignedBigInteger('sender_patient_member_id')->nullable();
-            // Receiver can be either patient or patient_member
-            $table->unsignedBigInteger('receiver_patient_id')->nullable();
-            $table->unsignedBigInteger('receiver_patient_member_id')->nullable();
-            $table->unsignedBigInteger('receiver_doctor_profile_id')->nullable();
-            $table->string('file')->nullable();
-            $table->text('message');
+            $table->unsignedBigInteger('consultation_id');
+            $table->unsignedBigInteger('sender_id'); // ID from users table (patient or doctor)
+            $table->unsignedBigInteger('patient_id'); // Parent patient ID for all messages
+            $table->unsignedBigInteger('receiver_id'); // ID from users table (patient or doctor)
+            $table->text('content');
             $table->boolean('is_read')->default(false);
+            $table->string('file')->nullable();
             $table->timestamps();
 
-            // Foreign keys (add only if you want strict DB constraints)
-            $table->foreign('sender_doctor_profile_id')->references('id')->on('doctor_profiles')->onDelete('cascade');
-            $table->foreign('sender_patient_id')->references('id')->on('patients')->onDelete('cascade');
-            $table->foreign('sender_patient_member_id')->references('id')->on('patient_members')->onDelete('cascade');
-
-            $table->foreign('receiver_doctor_profile_id')->references('id')->on('doctor_profiles')->onDelete('cascade');
-            $table->foreign('receiver_patient_id')->references('id')->on('patients')->onDelete('cascade');
-            $table->foreign('receiver_patient_member_id')->references('id')->on('patient_members')->onDelete('cascade');
+            $table->foreign('consultation_id')->references('id')->on('consultations')->onDelete('cascade');
+            $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
+            $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

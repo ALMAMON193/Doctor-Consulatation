@@ -41,21 +41,29 @@ class Patient extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function patientMembers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PatientMember::class, 'patient_id');
     }
+
     public function medicalRecords(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PatientMedicalRecord::class);
     }
+
     public function members(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(PatientMember::class, 'patient_id');
     }
+
     public function consultations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Consultation::class);
     }
 
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class, 'patient_id');
+    }
 }

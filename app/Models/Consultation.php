@@ -50,6 +50,7 @@ class Consultation extends Model
     {
         return $this->belongsTo(DoctorProfile::class, 'doctor_id');
     }
+
     public function specialization(): BelongsTo
     {
         return $this->belongsTo(Specialization::class, 'specialization_id');
@@ -58,6 +59,11 @@ class Consultation extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class, 'consultation_id', 'id');
+    }
+
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class, 'consultation_id');
     }
 
     /* 🔹 Useful Attribute Helpers */
