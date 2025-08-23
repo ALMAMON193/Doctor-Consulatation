@@ -205,7 +205,7 @@ class UserApiController extends Controller
             return $this->sendError('User not authenticated', [], 401);
         }
         try {
-            $specializations = Specialization::select('id', 'name')->get();
+            $specializations = Specialization::select('id', 'name','price')->get();
             return $this->sendResponse ($specializations,__('Fetch All Specialization.'));
         }catch (Exception $e)
         {

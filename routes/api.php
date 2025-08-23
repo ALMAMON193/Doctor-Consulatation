@@ -132,10 +132,8 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::post('consultations',           [ConsultationBookingController::class, 'book']);            // Book consultation
     Route::get('consultation-details',     [ConsultationRecordApiController::class, 'index']);         // Consultation list
     Route::delete('consultations/delete/{id}',[ConsultationRecordApiController::class, 'destroy']);    // Delete consultation
-
     // Ratings
     Route::post('consultation-ratting',    [RatingApiController::class, 'store']);                     // Submit rating
-
     // Notifications
     Route::get('notifications',            [PatientNotificationController::class, 'index']);           // List notifications
     Route::post('notifications/{id}/read', [PatientNotificationController::class, 'markAsRead']);      // Mark as read
