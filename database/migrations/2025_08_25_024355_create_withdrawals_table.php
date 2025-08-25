@@ -12,6 +12,7 @@
          */
         public function up(): void
         {
+
             Schema::create('withdrawals', function (Blueprint $table) {
                 $table->id();
                 $table->foreignIdFor(DoctorProfile::class)->constrained()->cascadeOnDelete();
