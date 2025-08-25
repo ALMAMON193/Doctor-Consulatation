@@ -1,23 +1,19 @@
-name: Deploy Project to Our Server
-
+name: Deploy Private GitHub repository to client server
 on:
   push:
     branches:
       - main
-
 jobs:
   FTP-Deploy-Action:
-    name: FTP Deployment
+    name: FTP-Deploy-Action
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v2.1.0
         with:
           fetch-depth: 2
-
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: FTP-Deploy-Action
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
         with:
           server: 31.97.86.127
-          username: backend-ftp
+          username: backend_ftp
           password: "8zxUBTQ4y9F1IstENXfd"
