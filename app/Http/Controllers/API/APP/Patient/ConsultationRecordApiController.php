@@ -40,7 +40,7 @@ class ConsultationRecordApiController extends Controller
             ->get();
 
         $ongoing = ConsultationResource::collection(
-            $consultations->where('consultation_status', 'pending')->values()
+            $consultations->where('consultation_status', 'monitoring')->values()
         );
         $closed = ConsultationResource::collection(
             $consultations->where('consultation_status', 'completed')->values()
@@ -60,21 +60,27 @@ class ConsultationRecordApiController extends Controller
             return $this->sendResponse([], 'User not found', 401);
         }
 
-        $consultation = Consultation::where('consultation_status', 'completed')
-            ->where(function ($query) use ($user) {
-                $patient = \App\Models\Patient::where('user_id', $user->id)->first();
-                $memberIds = \App\Models\PatientMember::where('patient_id', optional($patient)->id)->pluck('id');
+        $patient = \App\Models\Patient::where('user_id', $user->id)->first();
+        $memberIds = \App\Models\PatientMember::where('patient_id', optional($patient)->id)->pluck('id')->toArray();
 
-                $query->where('patient_id', optional($patient)->id)
-                    ->orWhereIn('patient_member_id', $memberIds);
-            })
-            ->find($id);
+        // Find the consultation by ID and ownership
+        $consultation = Consultation::where(function ($query) use ($patient, $memberIds) {
+            $query->where('patient_id', optional($patient)->id)
+                ->orWhereIn('patient_member_id', $memberIds);
+        })
+            ->where('id', $id)
+            ->first();
 
-        if (!$consultation) {
-            return $this->sendError('Consultation not found', ['error' => 'Consultation not found']);
+        // Check if consultation is completed
+        if ($consultation->consultation_status !== 'completed') {
+            return $this->sendError(
+                __('Your consultation is still in monitoring. Only completed consultations can be deleted.'),
+            );
         }
-        $consultation->delete();
 
+        $consultation->delete();
         return $this->sendResponse([], 'Consultation deleted successfully');
     }
+
+
 }

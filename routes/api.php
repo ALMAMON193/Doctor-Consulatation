@@ -105,8 +105,9 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::post('notifications/{id}/read',    [DoctorNotificationController::class, 'markAsRead']);
 
     // Wallet
-    Route::get('my-wallet',                   [WalletAPIController::class, 'wallet']);
-    Route::post('withdraw-request',           [WalletAPIController::class, 'requestWithdraw']);
+    Route::get('my-wallet',                   [WalletAPIController::class, 'wallet']);             //my wallet
+        Route::post('withdraw-request',           [WalletAPIController::class, 'requestWithdraw']);       //withdraw request
+    Route::get('transaction-history',            [WalletAPIController::class, 'viewTransactionHistory']);
 });
 
 /*

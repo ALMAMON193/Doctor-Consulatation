@@ -359,7 +359,7 @@ class ProfileApiController extends Controller
         }
         // Fetch consultations where payment_status = paid and belongs to this doctor
         $consultations = Consultation::with(['patient', 'patientMember'])
-            ->where('doctor_profile_id', $doctorProfileId)
+            ->where('doctor_id', $doctorProfileId)
             ->where('payment_status', 'paid')
             ->get();
         return $this->sendResponse(
