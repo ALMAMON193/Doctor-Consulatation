@@ -20,4 +20,4 @@ jobs:
         with:
           server: 31.97.86.127
           username: backend-ftp2
-          password: "3XWaSWYdI2BnHYbUBTXB"
+          password: 3XWaSWYdI2BnHYbUBTXB
