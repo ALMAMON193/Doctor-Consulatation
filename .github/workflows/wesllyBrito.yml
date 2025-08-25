@@ -19,5 +19,5 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: 31.97.86.127
-          username: backend-ftp
-          password: "P30iKNFuvMtZsjlWqRYs"
+          username: backend-ftp2
+          password: "3XWaSWYdI2BnHYbUBTXB"
