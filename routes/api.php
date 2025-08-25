@@ -19,6 +19,7 @@ use App\Http\Controllers\API\WEB\Dashboard\Consultation\ConsultationApiControlle
 use App\Http\Controllers\API\WEB\Dashboard\Coupon\CouponController;
 use App\Http\Controllers\API\WEB\Dashboard\Doctor\DoctorApiController;
 use App\Http\Controllers\API\WEB\Dashboard\Patient\PatientApiController;
+use App\Http\Controllers\API\WEB\Dashboard\WithDrawRequest\TransactionController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
@@ -69,6 +70,11 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('coupons',                   [CouponController::class, 'index']);
     Route::post('coupon-create',            [CouponController::class, 'store']);
     Route::get('coupon-details/{id}',       [CouponController::class, 'show']);
+
+    //withdraw request
+    Route::get('withdraw-requests',         [TransactionController::class, 'withdrawRequests']);
+    Route::post('withdraw-accept',           [TransactionController::class, 'acceptRequest']);
+    Route::post('withdraw-reject',           [TransactionController::class, 'rejectRequest']);
 });
 
 /*
