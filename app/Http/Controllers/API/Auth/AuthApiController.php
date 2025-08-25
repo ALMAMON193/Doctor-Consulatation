@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\API\Auth;
 
-use Exception;
-use Carbon\Carbon;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\APP\Doctor\DoctorRegisterRequest;
 use App\Models\User;
 use App\Traits\ApiResponse;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Requests\DoctorRegisterRequest;
+use Illuminate\Support\Str;
 
 class AuthApiController extends Controller
 {

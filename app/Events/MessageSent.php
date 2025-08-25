@@ -2,10 +2,9 @@
 
 namespace App\Events;
 
-use App\Http\Resources\ChatMessageResource;
+use App\Http\Resources\APP\Chatting\ChatMessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;

@@ -1,28 +1,28 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\API\APP\Doctor\ConsultationController as DoctorConsultationController;
+use App\Http\Controllers\API\APP\Doctor\NotificationController as DoctorNotificationController;
+use App\Http\Controllers\API\APP\Doctor\PatientHistoryController;
+use App\Http\Controllers\API\APP\Doctor\ProfileApiController as DoctorProfileApiController;
+use App\Http\Controllers\API\APP\Doctor\UserApiController as DoctorUserApiController;
+use App\Http\Controllers\API\APP\Doctor\WalletAPIController;
+use App\Http\Controllers\API\APP\Patient\ConsultationBookingController;
+use App\Http\Controllers\API\APP\Patient\ConsultationChatApiController;
+use App\Http\Controllers\API\APP\Patient\ConsultationRecordApiController;
+use App\Http\Controllers\API\APP\Patient\HomeApiController;
+use App\Http\Controllers\API\APP\Patient\MedicalApiRecordController;
+use App\Http\Controllers\API\APP\Patient\NotificationAPIController as PatientNotificationController;
+use App\Http\Controllers\API\APP\Patient\ProfileApiController as PatientProfileApiController;
+use App\Http\Controllers\API\APP\Patient\RatingApiController;
+use App\Http\Controllers\API\Auth\AuthApiController;
+use App\Http\Controllers\API\WEB\Dashboard\Consultation\ConsultationApiController;
+use App\Http\Controllers\API\WEB\Dashboard\Coupon\CouponController;
+use App\Http\Controllers\API\WEB\Dashboard\Doctor\DoctorApiController;
+use App\Http\Controllers\API\WEB\Dashboard\Patient\PatientApiController;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Route;
 
 // Controllers
-use App\Http\Controllers\API\Auth\AuthApiController;
-use App\Http\Controllers\API\Dashboard\Consultation\ConsultationApiController;
-use App\Http\Controllers\API\Dashboard\Doctor\DoctorApiController;
-use App\Http\Controllers\API\Dashboard\Patient\PatientApiController;
-use App\Http\Controllers\API\Dashboard\Coupon\CouponController;
-use App\Http\Controllers\API\Doctor\UserApiController              as DoctorUserApiController;
-use App\Http\Controllers\API\Doctor\ProfileApiController           as DoctorProfileApiController;
-use App\Http\Controllers\API\Doctor\NotificationController         as DoctorNotificationController;
-use App\Http\Controllers\API\Doctor\ConsultationController         as DoctorConsultationController;
-use App\Http\Controllers\API\Doctor\PatientHistoryController;
-use App\Http\Controllers\API\Patient\ProfileApiController          as PatientProfileApiController;
-use App\Http\Controllers\API\Patient\ConsultationBookingController;
-use App\Http\Controllers\API\Patient\ConsultationChatApiController;
-use App\Http\Controllers\API\Patient\ConsultationRecordApiController;
-use App\Http\Controllers\API\Patient\MedicalApiRecordController;
-use App\Http\Controllers\API\Patient\NotificationAPIController     as PatientNotificationController;
-use App\Http\Controllers\API\Patient\HomeApiController;
-use App\Http\Controllers\API\Patient\RatingApiController;
-
 
 /*
 |--------------------------------------------------------------------------
@@ -30,19 +30,18 @@ use App\Http\Controllers\API\Patient\RatingApiController;
 |--------------------------------------------------------------------------
 */
 Route::prefix('auth')->group(function () {
-    Route::post('login',           [AuthApiController::class, 'loginApi']);           // User login
-    Route::post('register',        [AuthApiController::class, 'registerApi']);        // User registration
-    Route::post('verify-email',    [AuthApiController::class, 'verifyEmailApi']);     // Verify email
-    Route::post('forgot-password', [AuthApiController::class, 'forgotPasswordApi']);  // Forgot password
-    Route::post('reset-password',  [AuthApiController::class, 'resetPasswordApi']);   // Reset password
-    Route::post('resend-otp',      [AuthApiController::class, 'resendOtpApi']);       // Resend OTP
-    Route::post('verify-otp',      [AuthApiController::class, 'verifyOtpApi']);       // Verify OTP
+    Route::post('login',           [AuthApiController::class, 'loginApi']);
+    Route::post('register',        [AuthApiController::class, 'registerApi']);
+    Route::post('verify-email',    [AuthApiController::class, 'verifyEmailApi']);
+    Route::post('forgot-password', [AuthApiController::class, 'forgotPasswordApi']);
+    Route::post('reset-password',  [AuthApiController::class, 'resetPasswordApi']);
+    Route::post('resend-otp',      [AuthApiController::class, 'resendOtpApi']);
+    Route::post('verify-otp',      [AuthApiController::class, 'verifyOtpApi']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('auth/logout',     [AuthApiController::class, 'logoutApi']);          // User logout
+    Route::post('auth/logout', [AuthApiController::class, 'logoutApi']);
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -52,24 +51,24 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('admin')->middleware('admin')->group(function () {
 
     // Doctors
-    Route::get('doctor-list',          [DoctorApiController::class, 'doctorList']);       // List doctors
-    Route::get('doctor-details/{id}',  [DoctorApiController::class, 'doctorDetails']);    // Doctor details
-    Route::post('create-doctor',       [DoctorApiController::class, 'createDoctor']);     // Create doctor
+    Route::get('doctor-list',               [DoctorApiController::class, 'doctorList']);
+    Route::get('doctor-details/{id}',       [DoctorApiController::class, 'doctorDetails']);
+    Route::post('create-doctor',            [DoctorApiController::class, 'createDoctor']);
 
     // Patients
-    Route::get('patient-list',         [PatientApiController::class, 'patientList']);     // List patients
-    Route::get('patient-details/{id}', [PatientApiController::class, 'patientDetails']);  // Patient details
-    Route::post('create-patient',      [PatientApiController::class, 'createPatient']);   // Create patient
+    Route::get('patient-list',              [PatientApiController::class, 'patientList']);
+    Route::get('patient-details/{id}',      [PatientApiController::class, 'patientDetails']);
+    Route::post('create-patient',           [PatientApiController::class, 'createPatient']);
 
     // Consultations
-    Route::get('consultation-list',        [ConsultationApiController::class, 'consultationList']);   // List consultations
-    Route::get('consultation-details/{id}',[ConsultationApiController::class, 'consultationDetails']); // Consultation details
-    Route::post('consultation-create',     [ConsultationApiController::class, 'consultationCreate']);  // Create consultation
+    Route::get('consultation-list',         [ConsultationApiController::class, 'consultationList']);
+    Route::get('consultation-details/{id}', [ConsultationApiController::class, 'consultationDetails']);
+    Route::post('consultation-create',      [ConsultationApiController::class, 'consultationCreate']);
 
     // Coupons
-    Route::get('coupons',              [CouponController::class, 'index']);              // List coupons
-    Route::post('coupon-create',       [CouponController::class, 'store']);              // Create coupon
-    Route::get('coupon-details/{id}',  [CouponController::class, 'show']);               // Coupon details
+    Route::get('coupons',                   [CouponController::class, 'index']);
+    Route::post('coupon-create',            [CouponController::class, 'store']);
+    Route::get('coupon-details/{id}',       [CouponController::class, 'show']);
 });
 
 /*
@@ -80,30 +79,34 @@ Route::prefix('admin')->middleware('admin')->group(function () {
 Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function () {
 
     // Profile
-    Route::post('create-profile',      [DoctorUserApiController::class, 'createProfile']);       // Create profile
-    Route::post('medical-info-verify', [DoctorUserApiController::class, 'medicalInfoVerify']);   // Verify medical info
-    Route::get('profile/verification-status', [DoctorUserApiController::class, 'checkVerificationStatus']); // Verification status
+    Route::post('create-profile',             [DoctorUserApiController::class, 'createProfile']);
+    Route::post('medical-info-verify',        [DoctorUserApiController::class, 'medicalInfoVerify']);
+    Route::get('profile/verification-status', [DoctorUserApiController::class, 'checkVerificationStatus']);
 
-    Route::get('profile/details',      [DoctorProfileApiController::class, 'profileDetails']);   // Profile details
-    Route::get('medical/details',      [DoctorProfileApiController::class, 'medicalDetails']);   // Medical details
-    Route::get('financial/details',    [DoctorProfileApiController::class, 'financialDetails']); // Financial details
+    Route::get('profile/details',             [DoctorProfileApiController::class, 'profileDetails']);
+    Route::get('medical/details',             [DoctorProfileApiController::class, 'medicalDetails']);
+    Route::get('financial/details',           [DoctorProfileApiController::class, 'financialDetails']);
 
-    Route::post('profile/update',      [DoctorProfileApiController::class, 'updateProfileDetails']); // Update profile
-    Route::post('medical/update',      [DoctorProfileApiController::class, 'medicalDataUpdate']);    // Update medical info
-    Route::post('financial/update',    [DoctorProfileApiController::class, 'financialUpdate']);      // Update financial info
+    Route::post('profile/update',             [DoctorProfileApiController::class, 'updateProfileDetails']);
+    Route::post('medical/update',             [DoctorProfileApiController::class, 'medicalDataUpdate']);
+    Route::post('financial/update',           [DoctorProfileApiController::class, 'financialUpdate']);
 
     // Consultations
-    Route::get('available/consultation',   [DoctorProfileApiController::class, 'activeConsultation']);  // Available consultations
-    Route::get('consultation/details/{id}',[DoctorProfileApiController::class, 'patientDetails']);      // Patient details
-    Route::get('consultations/{id}',       [DoctorConsultationController::class, 'show']);              // View consultation
-    Route::post('consultations/{id}/accept',[DoctorConsultationController::class, 'accept']);           // Accept consultation
+    Route::get('available/consultation',      [DoctorProfileApiController::class, 'activeConsultation']);
+    Route::get('consultation/details/{id}',   [DoctorProfileApiController::class, 'patientDetails']);
+    Route::get('consultations/{id}',          [DoctorConsultationController::class, 'show']);
+    Route::post('consultations/{id}/accept',  [DoctorConsultationController::class, 'accept']);
 
     // Patients
-    Route::get('patient/history',      [PatientHistoryController::class, 'patientHistory']);     // Patient history
+    Route::get('patient/history',             [PatientHistoryController::class, 'patientHistory']);
 
     // Notifications
-    Route::get('notifications',        [DoctorNotificationController::class, 'index']);          // List notifications
-    Route::post('notifications/{id}/read',[DoctorNotificationController::class, 'markAsRead']);  // Mark as read
+    Route::get('notifications',               [DoctorNotificationController::class, 'index']);
+    Route::post('notifications/{id}/read',    [DoctorNotificationController::class, 'markAsRead']);
+
+    // Wallet
+    Route::get('my-wallet',                   [WalletAPIController::class, 'wallet']);
+    Route::post('withdraw-request',           [WalletAPIController::class, 'requestWithdraw']);
 });
 
 /*
@@ -113,30 +116,32 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
 */
 Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(function () {
 
-    //Home
-    Route::get('/home', [HomeApiController::class, 'index']);   // Fetch Home Data
-    Route::post('check-coupon',[ConsultationBookingController::class, 'checkCoupon']);   //check coupon
+    // Home
+    Route::get('/home',                             [HomeApiController::class, 'index']);
+    Route::post('check-coupon',                     [ConsultationBookingController::class, 'checkCoupon']);
 
     // Profile
-    Route::post('create-profile',          [PatientProfileApiController::class, 'createProfile']);     // Create profile
-    Route::get('profile/details',          [PatientProfileApiController::class, 'profileDetails']);    // Profile details
-    Route::post('update/profile/details',  [PatientProfileApiController::class, 'updateProfileDetails']); // Update profile
+    Route::post('create-profile',                   [PatientProfileApiController::class, 'createProfile']);
+    Route::get('profile/details',                   [PatientProfileApiController::class, 'profileDetails']);
+    Route::post('update/profile/details',           [PatientProfileApiController::class, 'updateProfileDetails']);
 
     // Members
-    Route::get('accounts',                 [PatientProfileApiController::class, 'accountDetails']);    // List member accounts
-    Route::post('add/member/account',      [PatientProfileApiController::class, 'addMemberAccount']);  // Add member
-    Route::post('update/member/account/{id}',[PatientProfileApiController::class, 'updateMemberAccount']); // Update member
-    Route::delete('delete/member/account/{id}',[PatientProfileApiController::class, 'deleteMemberAccount']); // Delete member
+    Route::get('accounts',                          [PatientProfileApiController::class, 'accountDetails']);
+    Route::post('add/member/account',               [PatientProfileApiController::class, 'addMemberAccount']);
+    Route::post('update/member/account/{id}',       [PatientProfileApiController::class, 'updateMemberAccount']);
+    Route::delete('delete/member/account/{id}',     [PatientProfileApiController::class, 'deleteMemberAccount']);
 
     // Consultations
-    Route::post('consultations',           [ConsultationBookingController::class, 'book']);            // Book consultation
-    Route::get('consultation-details',     [ConsultationRecordApiController::class, 'index']);         // Consultation list
-    Route::delete('consultations/delete/{id}',[ConsultationRecordApiController::class, 'destroy']);    // Delete consultation
+    Route::post('consultations',                    [ConsultationBookingController::class, 'book']);
+    Route::get('consultation-details',              [ConsultationRecordApiController::class, 'index']);
+    Route::delete('consultations/delete/{id}',      [ConsultationRecordApiController::class, 'destroy']);
+
     // Ratings
-    Route::post('consultation-ratting',    [RatingApiController::class, 'store']);                     // Submit rating
+    Route::post('consultation-ratting',             [RatingApiController::class, 'store']);
+
     // Notifications
-    Route::get('notifications',            [PatientNotificationController::class, 'index']);           // List notifications
-    Route::post('notifications/{id}/read', [PatientNotificationController::class, 'markAsRead']);      // Mark as read
+    Route::get('notifications',                     [PatientNotificationController::class, 'index']);
+    Route::post('notifications/{id}/read',          [PatientNotificationController::class, 'markAsRead']);
 });
 
 /*
@@ -145,11 +150,10 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
 |--------------------------------------------------------------------------
 */
 Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
-    Route::get('participants', [ConsultationChatApiController::class, 'getChatParticipantsInfo']); // Chat participants
-    Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']);             // Send message
-    Route::get('history',       [ConsultationChatApiController::class, 'getConversationHistory']);  // Chat history
+    Route::get('participants',  [ConsultationChatApiController::class, 'getChatParticipantsInfo']);
+    Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']);
+    Route::get('history',       [ConsultationChatApiController::class, 'getConversationHistory']);
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -157,27 +161,28 @@ Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('patient/medical-record')->middleware(['patient', 'auth:sanctum'])->group(function () {
-    Route::get('/',           [MedicalApiRecordController::class, 'index']);              // List medical records
-    Route::post('store',      [MedicalApiRecordController::class, 'storeMedicalRecord']); // Add medical record
-    Route::post('update/{id}',[MedicalApiRecordController::class, 'updateMedicalRecord']); // Update medical record
-    Route::delete('delete/{id}',[MedicalApiRecordController::class, 'destroyMedicalRecord']); // Delete medical record
+    Route::get('/',              [MedicalApiRecordController::class, 'index']);
+    Route::post('store',         [MedicalApiRecordController::class, 'storeMedicalRecord']);
+    Route::post('update/{id}',   [MedicalApiRecordController::class, 'updateMedicalRecord']);
+    Route::delete('delete/{id}', [MedicalApiRecordController::class, 'destroyMedicalRecord']);
 });
+
 /*
 |--------------------------------------------------------------------------
 | Payments
 |--------------------------------------------------------------------------
 */
-Route::get('payment/success', [ConsultationBookingController::class, 'success'])->name('payment.success'); // Payment success
-Route::get('payment/fail',    [ConsultationBookingController::class, 'fail'])->name('payment.fail');       // Payment fail
-Route::post('stripe/webhook', [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature'); // Stripe webhook
-Route::get('stripe/publish-key',[ConsultationBookingController::class, 'publishKey']);    //published key in stripe
+Route::get('payment/success',    [ConsultationBookingController::class, 'success'])->name('payment.success');
+Route::get('payment/fail',       [ConsultationBookingController::class, 'fail'])->name('payment.fail');
+Route::post('stripe/webhook',    [ConsultationBookingController::class, 'handleWebhook'])->middleware('stripe.signature');
+Route::get('stripe/publish-key', [ConsultationBookingController::class, 'publishKey']);
 
 /*
 |--------------------------------------------------------------------------
 | Miscellaneous
 |--------------------------------------------------------------------------
 */
-Route::get('specializations', [DoctorUserApiController::class, 'specializations']);  // List all specializations
+Route::get('specializations', [DoctorUserApiController::class, 'specializations']);
 
 // WebSocket Broadcast (Laravel Echo / Pusher)
 Broadcast::routes(['middleware' => ['auth:sanctum']]);

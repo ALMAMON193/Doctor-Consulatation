@@ -13,19 +13,24 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
+
             $table->unsignedBigInteger('consultation_id');
-            $table->unsignedBigInteger('sender_id'); // ID from users table (patient or doctor)
-            $table->unsignedBigInteger('patient_id'); // Parent patient ID for all messages
-            $table->unsignedBigInteger('receiver_id'); // ID from users table (patient or doctor)
-            $table->text('content');
-            $table->boolean('is_read')->default(false);
+            $table->unsignedBigInteger('sender_id'); // users table
+            $table->unsignedBigInteger('receiver_id'); // users table
+            $table->unsignedBigInteger('patient_id'); // main patient id
+            $table->unsignedBigInteger('patient_member_id')->nullable(); // যদি patient member message দেয়
+
+            $table->text('content')->nullable();
             $table->string('file')->nullable();
+            $table->boolean('is_read')->default(false);
+
             $table->timestamps();
 
             $table->foreign('consultation_id')->references('id')->on('consultations')->onDelete('cascade');
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
             $table->foreign('receiver_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
+            $table->foreign('patient_member_id')->references('id')->on('patient_members')->onDelete('cascade');
         });
     }
 

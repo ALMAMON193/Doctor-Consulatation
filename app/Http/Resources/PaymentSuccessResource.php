@@ -58,7 +58,6 @@ class PaymentSuccessResource extends JsonResource
         if ($value === null || $value === '' || $value === 'null') {
             return '';
         }
-
         return asset($value);
     }
 }
