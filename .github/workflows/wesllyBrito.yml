@@ -21,5 +21,3 @@ jobs:
           server: 31.97.86.127
           username: backend-ftp
           password: "P30iKNFuvMtZsjlWqRYs",
-                      passive: true
-          timeout: 60000
