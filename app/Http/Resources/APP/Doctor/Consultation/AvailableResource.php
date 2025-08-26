@@ -15,14 +15,49 @@ class AvailableResource extends JsonResource
 
         if ($consultationDate && $consultationDate->isFuture()) {
             $totalMinutes = $now->diffInMinutes($consultationDate);
-            $hours = floor($totalMinutes / 60);
-            $minutes = $totalMinutes % 60;
-            $timeLeft = "{$hours}h {$minutes}m left";
+            $hours        = floor($totalMinutes / 60);
+            $minutes      = $totalMinutes % 60;
+            $timeLeft     = "{$hours}h {$minutes}m left";
         } else {
             $timeLeft = 'Expired';
         }
 
-        $patientData = $this->patient ?? $this->patientMember;
+        /**
+         * Patient Info
+         * Priority:
+         *  1. If consultation has patient_member → show patient_member details
+         *     but id = parent patient id
+         *  2. Else → show real patient details
+         */
+        if ($this->patientMember) {
+            $parentPatient = $this->patientMember->patient;
+
+            $patientData = [
+                'id'            => $parentPatient->id ?? null, // parent patient id
+                'name'          => $this->patientMember->name,
+                'age'           => $this->patientMember->date_of_birth
+                    ? Carbon::parse($this->patientMember->date_of_birth)->age . ' Years Old'
+                    : '',
+                'profile_photo' => $this->patientMember->profile_photo
+                    ? asset('storage/' . $this->patientMember->profile_photo)
+                    : '',
+            ];
+        } elseif ($this->patient) {
+            $patientData = [
+                'id'            => $this->patient->id,
+                'name'          => optional($this->patient->user)->name ?? $this->patient->name,
+                'age'           => isset($this->patient->date_of_birth)
+                    ? Carbon::parse($this->patient->date_of_birth)->age . ' Years Old'
+                    : '',
+                'profile_photo' => $this->patient->profile_photo
+                    ? asset('storage/' . $this->patient->profile_photo)
+                    : (optional($this->patient->user)->profile_photo
+                        ? asset('storage/' . $this->patient->user->profile_photo)
+                        : ''),
+            ];
+        } else {
+            $patientData = null;
+        }
 
         return [
             'id' => $this->id,
@@ -30,22 +65,15 @@ class AvailableResource extends JsonResource
                 ? Carbon::parse($this->consultation_date)->format('d F, Y')
                 : null,
             'complaint' => $this->complaint,
-            'patient' => $patientData ? [
-                'id' => $patientData->id,
-                'name' => optional($patientData->user)->name ?? $patientData->name,
-                'age' => isset($patientData->date_of_birth)
-                    ? Carbon::parse($patientData->date_of_birth)->age . ' Years Old'
-                    : '',
-                'location' => $this->patient->city ?? '',
-                'profile_photo' => optional($patientData->user)->profile_photo
-                    ? asset('storage/' . $patientData->user->profile_photo)
-                    : '',
-            ] : [],
+
+            'patient' => $patientData,
+
             'doctor_info' => [
-                'specialization' => $this->specialization->name ?? '',
-                'time_left' => $timeLeft,
-                'amount' => 'R$' . number_format($this->final_amount, 2),
-                'average_rating' => round(optional($this->doctorProfile)->ratings()->avg('rating') ?? 0, 1),
+                'id'              => optional($this->doctorProfile)->id,
+                'specialization'  => $this->specialization->name ?? '',
+                'time_left'       => $timeLeft,
+                'amount'          => 'R$' . number_format($this->final_amount, 2),
+                'average_rating'  => round(optional($this->doctorProfile)->ratings()->avg('rating') ?? 0, 1),
             ],
         ];
     }

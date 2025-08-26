@@ -38,7 +38,7 @@ class DoctorProfileRequest extends FormRequest
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|max:255|unique:users,email,' . auth('sanctum')->user()->id,
             'phone_number'         => 'required|string|max:20',
-            'avatar'        => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'profile_picture'        => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'date_of_birth' => 'required|date',
             'cpf'           => 'required|string|max:20',
             'gender'        => 'required|string|in:male,female,other',

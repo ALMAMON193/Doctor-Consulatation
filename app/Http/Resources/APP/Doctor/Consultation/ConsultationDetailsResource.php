@@ -19,63 +19,87 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class ConsultationDetailsResource extends JsonResource
 {
-
     public function toArray(Request $request): array
     {
         $now = Carbon::now();
-        $consultationDate = Carbon::parse($this->consultation_date);
+        $consultationDate = $this->consultation_date ? Carbon::parse($this->consultation_date) : null;
 
-        $timeLeft = $consultationDate->isFuture()
-            ? $now->diffForHumans($consultationDate, ['parts' => 2, 'short' => true, 'syntax' => CarbonInterface::DIFF_ABSOLUTE]) . ' left'
+        $timeLeft = ($consultationDate && $consultationDate->isFuture())
+            ? $now->diffForHumans($consultationDate, [
+                'parts' => 2,
+                'short' => true,
+                'syntax' => CarbonInterface::DIFF_ABSOLUTE
+            ]) . ' left'
             : 'Expired';
 
-        return [
-            'id' => $this->id,
-            'consultation_date' => $this->consultation_date
-                ? Carbon::parse($this->consultation_date)->format('d,F,Y')
-                : null,
-            'timeLeft' => $timeLeft,
-            'amount' => intval($this->final_amount),
-            'complaint' => $this->complaint,
-            'specialization' => $this->specialization->name ?? '',
+        /**
+         * Patient logic:
+         * - If patient_member exists → use member details, but parent patient id
+         * - Else → use patient details
+         */
+        if ($this->patientMember) {
+            $parentPatient = $this->patientMember->patient;
 
-            'patient' => $this->patient ? [
-                'id' => $this->patient->id,
-                'name' => optional($this->patient->user)->name,
-                'age' => $this->patient->date_of_birth
+            $patientData = [
+                'id'   => $parentPatient->id ?? null, // ✅ parent patient id
+                'name' => $this->patientMember->name,
+                'age'  => $this->patientMember->date_of_birth
+                    ? Carbon::parse($this->patientMember->date_of_birth)->age . ' Years Old'
+                    : '',
+                'profile_photo' => $this->patientMember->profile_photo
+                    ? asset('storage/' . $this->patientMember->profile_photo)
+                    : '',
+                'medical_records' => $this->patientMember->medicalRecords
+                    ? $this->patientMember->medicalRecords->map(function ($record) {
+                        return [
+                            'id'       => $record->id,
+                            'type'     => $record->record_type,
+                            'date'     => $record->record_date,
+                            'file_url' => $record->file_path ? asset('storage/' . $record->file_path) : '',
+                        ];
+                    })
+                    : [],
+            ];
+        } elseif ($this->patient) {
+            $patientData = [
+                'id'   => $this->patient->id,
+                'name' => optional($this->patient->user)->name ?? $this->patient->name,
+                'age'  => $this->patient->date_of_birth
                     ? Carbon::parse($this->patient->date_of_birth)->age . ' Years Old'
                     : '',
-                'profile_photo' => optional($this->patient->user)->profile_photo
-                    ? asset('storage/' . $this->patient->user->profile_photo)
-                    : '',
-                'medical_records' => $this->patient->medicalRecords->map(function ($record) {
-                    return [
-                        'id' => $record->id,
-                        'type' => $record->record_type,
-                        'date' => $record->record_date,
-                        'file_url' => $record->file_path ? asset('storage/' . $record->file_path) : '',
-                    ];
-                }),
-            ] : '',
+                'profile_photo' => $this->patient->profile_photo
+                    ? asset('storage/' . $this->patient->profile_photo)
+                    : (optional($this->patient->user)->profile_photo
+                        ? asset('storage/' . $this->patient->user->profile_photo)
+                        : ''),
+                'medical_records' => $this->patient->medicalRecords
+                    ? $this->patient->medicalRecords->map(function ($record) {
+                        return [
+                            'id'       => $record->id,
+                            'type'     => $record->record_type,
+                            'date'     => $record->record_date,
+                            'file_url' => $record->file_path ? asset('storage/' . $record->file_path) : '',
+                        ];
+                    })
+                    : [],
+            ];
+        } else {
+            $patientData = null;
+        }
 
-            'patient_member' => $this->patientMember ? [
-                'id' => $this->patientMember->id,
-                'name' => $this->patientMember->name,
-                'profile_photo' => optional($this->patientMember->user)->profile_photo
-                    ? asset('storage/' . $this->patientMember->user->profile_photo)
-                    : '',
-                'medical_records' => $this->patientMember->medicalRecords->map(function ($record) {
-                    return [
-                        'id' => $record->id,
-                        'type' => $record->record_type,
-                        'date' => $record->record_date,
-                        'file_url' => $record->file_path ? asset('storage/' . $record->file_path) : '',
-                    ];
-                }),
-            ] : '',
-
-            'doctor_info' => [
-                'doctor_name' => optional(optional($this->doctorProfile)->user)->name,
+        return [
+            'id'                => $this->id,
+            'consultation_date' => $consultationDate
+                ? $consultationDate->format('d F, Y')
+                : null,
+            'timeLeft'     => $timeLeft,
+            'amount'       => intval($this->final_amount),
+            'complaint'    => $this->complaint,
+            'specialization' => $this->specialization->name ?? '',
+            'patient'      => $patientData,
+            'doctor_info'  => [
+                'id'             => optional($this->doctorProfile)->id,
+                'doctor_name'    => optional(optional($this->doctorProfile)->user)->name,
                 'average_rating' => round(optional($this->doctorProfile)->ratings()->avg('rating') ?? 0, 1),
             ],
         ];

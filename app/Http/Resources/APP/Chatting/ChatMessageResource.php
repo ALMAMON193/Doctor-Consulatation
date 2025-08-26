@@ -8,6 +8,19 @@ class ChatMessageResource extends JsonResource
 {
     public function toArray($request): array
     {
+        $patientData = [
+            'id' => $this->patient?->id,
+            'name' => $this->patient?->user?->name ?? 'Unknown',
+        ];
+
+        $patientMemberData = [];
+        if ($this->patient_member_id) { // jodi patient member thake
+            $patientMemberData = [
+                'id' => $this->patientMember?->id,
+                'name' => $this->patientMember?->name ?? 'Unknown',
+            ];
+        }
+
         return [
             'id' => $this->id,
             'consultation_id' => $this->consultation_id,
@@ -22,17 +35,8 @@ class ChatMessageResource extends JsonResource
                 'name' => $this->receiver?->name ?? 'Unknown',
             ],
 
-            'patient' => [
-                'id' => $this->patient?->id,
-                'name' => $this->patient?->user?->name ?? 'Unknown',
-            ],
-
-            'patient_member' => $this->patientMember
-                ? [
-                    'id' => $this->patientMember->id,
-                    'name' => $this->patientMember->name,
-                ]
-                : null,
+            'patient' => $patientData,
+            'patient_member' => $patientMemberData,
 
             'content' => $this->content,
             'file' => $this->file ? asset('storage/' . $this->file) : null,

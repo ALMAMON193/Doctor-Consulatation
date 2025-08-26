@@ -149,6 +149,12 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     // Notifications
     Route::get('notifications',                     [PatientNotificationController::class, 'index']);
     Route::post('notifications/{id}/read',          [PatientNotificationController::class, 'markAsRead']);
+
+    //medical record
+    Route::get('medical-record',                    [MedicalApiRecordController::class, 'index']);
+    Route::post('medical-record/store',             [MedicalApiRecordController::class, 'storeMedicalRecord']);
+    Route::post('medical-record/update/{id}',       [MedicalApiRecordController::class, 'updateMedicalRecord']);
+    Route::delete('medical-record/delete/{id}',     [MedicalApiRecordController::class, 'destroyMedicalRecord']);
 });
 
 /*
@@ -157,21 +163,8 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
 |--------------------------------------------------------------------------
 */
 Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
-    Route::get('participants',  [ConsultationChatApiController::class, 'getChatParticipantsInfo']);
     Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']);
-    Route::get('history',       [ConsultationChatApiController::class, 'getConversationHistory']);
-});
-
-/*
-|--------------------------------------------------------------------------
-| Medical Records
-|--------------------------------------------------------------------------
-*/
-Route::prefix('patient/medical-record')->middleware(['patient', 'auth:sanctum'])->group(function () {
-    Route::get('/',              [MedicalApiRecordController::class, 'index']);
-    Route::post('store',         [MedicalApiRecordController::class, 'storeMedicalRecord']);
-    Route::post('update/{id}',   [MedicalApiRecordController::class, 'updateMedicalRecord']);
-    Route::delete('delete/{id}', [MedicalApiRecordController::class, 'destroyMedicalRecord']);
+    Route::get('history',       [ConsultationChatApiController::class, 'getMessageHistory']);
 });
 
 /*

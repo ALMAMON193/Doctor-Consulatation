@@ -17,7 +17,7 @@ class DoctorMedicalRequest extends FormRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return auth('sanctum')->user() && auth('sanctum')->user()->user_type === 'doctor';
     }
@@ -27,12 +27,13 @@ class DoctorMedicalRequest extends FormRequest
      *
      * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [
             'crm'           => 'required|string|max:50',
             'uf'            => 'required|string|max:50',
-            'specialization' => 'required|string|max:255',
+            'specializations' => 'array',
+            'specializations.*' => 'exists:specializations,id',
             'video_path'         => 'nullable|file|mimes:mp4,avi,mov|max:1000240', // 1000MB max
         ];
     }

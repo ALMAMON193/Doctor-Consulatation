@@ -88,33 +88,29 @@ class ProfileApiController extends Controller
     /**
      * Update basic user information and personal details.
      *
-     * @param \App\Http\Requests\APP\Doctor\DoctorProfileRequest $request Validated request containing user and personal details
+     * @param DoctorProfileRequest $request Validated request containing user and personal details
      * @return JsonResponse Response with success or error message
      * @throws Throwable
      */
     public function updateProfileDetails(DoctorProfileRequest $request): JsonResponse
     {
-        // Get authenticated user
         $user = auth('sanctum')->user();
 
-        // Ensure user is doctor
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
 
-        // Use DB transaction to ensure atomicity of updates
         DB::beginTransaction();
 
         try {
-            // Retrieve or create DoctorProfile model for current user
+            // Retrieve or create doctor profile
             $doctorProfile = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
 
-            // Prepare user data update array with mandatory name update
+            // Update basic user info (name, email, phone_number)
             $updateData = [
                 'name' => $request->name,
             ];
 
-            // If verification verified, restrict changing email and phone
             if ($doctorProfile->verification_status === 'verified') {
                 if ($user->email !== $request->email) {
                     return $this->sendError(__('Email cannot be changed as it is already verified.'), [], 422);
@@ -123,48 +119,50 @@ class ProfileApiController extends Controller
                     return $this->sendError(__('Phone number cannot be changed as it is already verified.'), [], 422);
                 }
             } else {
-                // Allow updating email and phone if not verified
                 $updateData['email'] = $request->email;
                 $updateData['phone_number'] = $request->phone_number;
             }
-            // Fill user with update data
-            $user->fill($updateData);
 
-            // Handle avatar upload if present in request
-            if ($request->hasFile('avatar')) {
-                // Upload new avatar and delete old one
-                $newAvatar = Helper::fileUpload($request->file('avatar'), 'doctor/avatar');
-                Helper::fileDelete($user->avatar);
-                $user->avatar = $newAvatar;
-            }
-            // Save user model updates
+            $user->fill($updateData);
             $user->save();
-            // Retrieve or create UserPersonalDetail for current user
+
+            // Handle profile picture upload for doctor_profile
+            if ($request->hasFile('profile_picture')) {
+                $newAvatar = Helper::fileUpload($request->file('profile_picture'), 'doctor/profile_picture');
+                if ($doctorProfile->profile_picture) {
+                    Helper::fileDelete($doctorProfile->profile_picture);
+                }
+                $doctorProfile->profile_picture = $newAvatar;
+            }
+
+            $doctorProfile->save();
+
+            // Update or create personal details
             $personalDetails = UserPersonalDetail::firstOrCreate(['user_id' => $user->id]);
-            // Prevent changing CPF if already verified
+
             if ($doctorProfile->verification_status === 'verified' && $personalDetails->cpf !== $request->cpf) {
                 return $this->sendError(__('CPF cannot be changed as it is already verified.'), [], 422);
             }
-            // Update or create personal detail fields
+
             UserPersonalDetail::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'date_of_birth' => $request->date_of_birth,
-                    'cpf'          => $request->cpf,
-                    'gender'       => $request->gender,
-                    'account_type' => $request->account_type,
+                    'cpf'           => $request->cpf,
+                    'gender'        => $request->gender,
+                    'account_type'  => $request->account_type,
                 ]
             );
-            // Commit all changes
+
             DB::commit();
-            // Return success response
+
             return $this->sendResponse([], __('Profile details updated successfully.'));
         } catch (Exception $e) {
-            // Rollback on failure and return error
             DB::rollBack();
-            return $this->sendError(__('Sorry, something went wrong while updating profile details.'), [], 500);
+            return $this->sendError(__('Sorry, something went wrong while updating profile details.'), ['error' => $e->getMessage()], 500);
         }
     }
+
     /**
      * Retrieve medical details for authenticated doctor.
      *
@@ -172,92 +170,80 @@ class ProfileApiController extends Controller
      */
     public function medicalDetails(): JsonResponse
     {
-        // Get authenticated user
         $user = auth('sanctum')->user();
-        // Check if user exists
         if (!$user) {
-            return $this->sendError(__('Only doctors can edit their profile'), [], 403);
+            return $this->sendError(__('Only doctors can view this information'), [], 403);
         }
-        // Eager load doctorProfile relation
-        $user->loadMissing(['doctorProfile']);
-        // Build response with medical info
+
+        $user->loadMissing(['doctorProfile.specializations']);
+
+        $doctor = $user->doctorProfile;
+
         $apiResponse = [
             'medical_information' => [
-                'crm'                      => optional($user->doctorProfile)->crm,
-                'uf'                       => optional($user->doctorProfile)->uf,
-                'specialization' => is_string(optional($user->doctorProfile)->specialization)
-                    ? json_decode($user->doctorProfile->specialization, true)
-                    : (optional($user->doctorProfile)->specialization ?? []),
-                'presentation_video' => filled(optional($user->doctorProfile)->video_path)
-                    ? asset('storage/' . $user->doctorProfile->video_path)
+                'crm' => $doctor->crm ?? '',
+                'uf'  => $doctor->uf ?? '',
+                'specializations' => $doctor->specializations->pluck('name'), // returns ["Cardiology", "Neurology", ...]
+                'presentation_video' => filled($doctor->video_path)
+                    ? asset('storage/' . $doctor->video_path)
                     : '',
-                'verification_status'      => optional($user->doctorProfile)->verification_status ?? 'pending',
-                'verification_rejection_reason' => optional($user->doctorProfile)->verification_rejection_reason ?? '',
+                'verification_status' => $doctor->verification_status ?? 'pending',
+                'verification_rejection_reason' => $doctor->verification_rejection_reason ?? '',
             ],
-
         ];
-        // Return success response
+
         return $this->sendResponse($apiResponse, __('Medical Details retrieved successfully.'));
     }
+
     /**
      * Update medical information (CRM, UF, specialization, video).
      *
-     * @param \App\Http\Requests\APP\Doctor\DoctorMedicalRequest $request Validated medical info request
+     * @param DoctorMedicalRequest $request Validated medical info request
      * @return JsonResponse Response with success or error message
      * @throws Throwable
      */
     public function medicalDataUpdate(DoctorMedicalRequest $request): JsonResponse
     {
-        // Get authenticated user
         $user = auth('sanctum')->user();
 
-        // Check user type is doctor
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
+
         DB::beginTransaction();
         try {
-            // Retrieve or create doctor profile
             $doctor = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
-            // Save original state to detect changes later
-            $originalDoctor = $doctor->replicate();
-            // Update medical fields
-            $doctor->fill([
-                'crm' => $request->crm,
-                'uf' => $request->uf,
-                'specialization' => $request->specialization,
-            ]);
-            $videoUpdated = false;
-            // Handle video upload if present
+
+            // update doctor profile fields
+            $doctor->crm = $request->crm;
+            $doctor->uf  = $request->uf;
+
             if ($request->hasFile('video_path')) {
                 $newVideo = Helper::fileUpload($request->file('video_path'), 'doctor/videos');
-                Helper::fileDelete($doctor->video_path); // Delete old video
+                Helper::fileDelete($doctor->video_path);
                 $doctor->video_path = $newVideo;
-                $videoUpdated = true;
             }
-            // Fields that affect verification status
-            $medicalFields = ['crm', 'uf', 'specialization', 'video_path'];
 
-            // Check if any medical field changed
-            $fieldsUpdated = $doctor->isDirty($medicalFields);
+            $doctor->save();
 
-            // If updated, reset verification status to pending
-            if ($fieldsUpdated) {
-                $doctor->verification_status = 'pending';
+            // ✅ specializations update
+            if ($request->filled('specialization')) {
+                $doctor->specializations()->sync($request->specialization);
+            } else {
+                $doctor->specializations()->sync([]);
             }
-            // Save changes
+            // reset verification if anything changed
+            $doctor->verification_status = 'pending';
             $doctor->save();
             DB::commit();
-            // Return appropriate message based on update
-            if ($fieldsUpdated || $videoUpdated) {
-                return $this->sendResponse([], __('Medical information has been updated and is pending verification.'));
-            }
             return $this->sendResponse([], __('Medical information updated successfully.'));
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->sendError(__('Sorry, something went wrong while updating medical information.'), [], 500);
+            return $this->sendError(__('Something went wrong'), [], 500);
         }
     }
+
+
     /**
      * Retrieve financial details for the authenticated doctor.
      *

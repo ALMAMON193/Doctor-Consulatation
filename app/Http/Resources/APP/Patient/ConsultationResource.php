@@ -15,19 +15,20 @@ class ConsultationResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            'id'                 => $this->id,
-            'doctor_id'          =>$this->doctorProfile->id,
+            'consultation_id'                 => $this->id,
+            'doctor_id'          => $this->doctorProfile->id,
             'doctor_name'        => optional($this->doctorProfile->user)->name,
-            'doctor_image'       => optional($this->doctorProfile->user)->profile_picture
-                ? asset(optional($this->doctorProfile->user)->profile_picture)
+            'doctor_image'       => $this->doctorProfile->profile_picture
+                ? asset('storage/' . $this->doctorProfile->profile_picture)
                 : '',
             'rating'             => $this->averageRatting(),
-            'crm'    => $this->doctorProfile->crm ?? null,
+            'crm'                => $this->doctorProfile->crm ?? null,
             'consultation_date'  => $this->consultation_date
                 ? Carbon::parse($this->consultation_date)->format('d/m/Y')
                 : null,
         ];
     }
+
     public function averageRatting(): string
     {
         if (!$this->doctorProfile) {

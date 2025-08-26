@@ -14,7 +14,7 @@ class Specialization extends Model
         'name',
         'price'
     ];
-    public function doctors()
+    public function doctors(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(
             DoctorProfile::class,        // related model
