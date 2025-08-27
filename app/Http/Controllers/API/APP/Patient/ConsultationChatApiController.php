@@ -104,10 +104,18 @@ class ConsultationChatApiController extends Controller
                 'file'               => $filePath,
             ]);
 
+            // ✅ Message এর relation গুলো load করুন broadcasting এর আগে
+            $message->load(['sender', 'receiver', 'patient', 'patientMember']);
+
             DB::commit();
-            //broadcast real time
+
+            // ✅ Broadcast real time
             event(new MessageSent($message));
-            return $this->sendResponse ( new ChatMessageResource($message),__('Message sent successfully.') );
+
+            return $this->sendResponse(
+                new ChatMessageResource($message),
+                __('Message sent successfully.')
+            );
 
         } catch (\Throwable $e) {
             DB::rollBack();

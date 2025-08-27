@@ -23,7 +23,8 @@ use App\Http\Controllers\API\WEB\Dashboard\WithDrawRequest\TransactionController
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
-// Controllers
+// ✅ Broadcasting Auth Route
+Broadcast::routes(['middleware' => ['api', 'auth:sanctum']]);
 
 /*
 |--------------------------------------------------------------------------
@@ -111,9 +112,9 @@ Route::prefix('doctor')->middleware(['doctor', 'auth:sanctum'])->group(function 
     Route::post('notifications/{id}/read',    [DoctorNotificationController::class, 'markAsRead']);
 
     // Wallet
-    Route::get('my-wallet',                   [WalletAPIController::class, 'wallet']);             //my wallet
-        Route::post('withdraw-request',           [WalletAPIController::class, 'requestWithdraw']);       //withdraw request
-    Route::get('transaction-history',            [WalletAPIController::class, 'viewTransactionHistory']);
+    Route::get('my-wallet',                   [WalletAPIController::class, 'wallet']);
+    Route::post('withdraw-request',           [WalletAPIController::class, 'requestWithdraw']);
+    Route::get('transaction-history',         [WalletAPIController::class, 'viewTransactionHistory']);
 });
 
 /*
@@ -166,7 +167,6 @@ Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
     Route::post('send-message', [ConsultationChatApiController::class, 'sendMessage']);
     Route::get('history',       [ConsultationChatApiController::class, 'getMessageHistory']);
 });
-
 
 /*
 |--------------------------------------------------------------------------
