@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Consultation;
+use App\Models\Message;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +13,17 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+
+    public function index(Consultation $consultation)
+    {
+        // Get messages for this consultation
+        $chats = Message::where('consultation_id', $consultation->id)
+            ->with(['sender', 'receiver', 'patient', 'patientMember'])
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return view('chat', compact( 'chats'));
+    }
     /**
      * Display the user's profile form.
      */

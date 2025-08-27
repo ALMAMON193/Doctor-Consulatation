@@ -135,6 +135,17 @@ class User extends Authenticatable
 
         return false;
     }
+    public function consultations(): User|\Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        // যদি user type doctor হয়
+        return $this->hasMany(Consultation::class, 'doctor_id', 'id')
+            ->orWhereHas('patient', function($q){
+                $q->where('user_id', $this->id);
+            })
+            ->orWhereHas('patientMember', function($q){
+                $q->where('user_id', $this->id);
+            });
+    }
 
 
 }

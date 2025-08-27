@@ -14,7 +14,7 @@ class ChatMessageResource extends JsonResource
         ];
 
         $patientMemberData = [];
-        if ($this->patient_member_id) { // jodi patient member thake
+        if ($this->patient_member_id) { // jodi patient member take
             $patientMemberData = [
                 'id' => $this->patientMember?->id,
                 'name' => $this->patientMember?->name ?? 'Unknown',

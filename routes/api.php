@@ -167,6 +167,7 @@ Route::prefix('chat')->middleware(['auth:sanctum'])->group(function () {
     Route::get('history',       [ConsultationChatApiController::class, 'getMessageHistory']);
 });
 
+
 /*
 |--------------------------------------------------------------------------
 | Payments
@@ -183,6 +184,3 @@ Route::get('stripe/publish-key', [ConsultationBookingController::class, 'publish
 |--------------------------------------------------------------------------
 */
 Route::get('specializations', [DoctorUserApiController::class, 'specializations']);
-
-// WebSocket Broadcast (Laravel Echo / Pusher)
-Broadcast::routes(['middleware' => ['auth:sanctum']]);

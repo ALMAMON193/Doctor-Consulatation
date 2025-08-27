@@ -14,12 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
 
-    )
-    ->withBroadcasting(
-        __DIR__ . '/../routes/channels.php',
-        ['prefix' => 'api', 'middleware' => ['auth:sanctum']]
-    )
-    ->withMiddleware(function (Middleware $middleware) {
+    )->withMiddleware(function (Middleware $middleware) {
         // Register middleware aliases here
         $middleware->alias([
             'doctor'            => DoctorMiddleware::class,
@@ -27,7 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'             => AdminMiddleware::class,
             'stripe.signature' => \App\Http\Middleware\VerifyStripeSignature::class,
         ]);
-    })
+    })->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['auth:sanctum']]
+    )
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

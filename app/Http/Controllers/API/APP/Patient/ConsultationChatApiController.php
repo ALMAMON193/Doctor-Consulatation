@@ -107,7 +107,6 @@ class ConsultationChatApiController extends Controller
             DB::commit();
             //broadcast real time
             event(new MessageSent($message));
-
             return $this->sendResponse ( new ChatMessageResource($message),__('Message sent successfully.') );
 
         } catch (\Throwable $e) {
