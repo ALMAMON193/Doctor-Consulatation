@@ -104,6 +104,7 @@ class WalletAPIController extends Controller
             'account_number' => 'required|string',
             'account_name' => 'required|string',
             'payment_method' => 'required|string',
+            'bank_name'      =>'required|string',
         ]);
         try {
             $doctor = Auth::user ();
@@ -139,6 +140,7 @@ class WalletAPIController extends Controller
                 'payment_method' => $request->payment_method,
                 'account_number' => $request->account_number,
                 'account_name' => $request->account_name,
+                'bank_name' => $request->bank_name,
                 'status' => 'pending',
             ]);
             return $this->sendResponse ($withdrawal, 'Withdrawal request submitted successfully');
@@ -171,7 +173,7 @@ class WalletAPIController extends Controller
                         'id'     => $c->id,
                         'type'   => 'Payment',
                         'amount' => $c->payment?->amount ?? 0,
-                        'status' => ucfirst($c->consultation_status),
+                        'status' => ucfirst($c->payment_status),
                         'date'   => $c->created_at,
                     ];
                 });

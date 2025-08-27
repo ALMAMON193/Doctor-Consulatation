@@ -16,7 +16,8 @@ class Withdrawal extends Model
         'status',
         'approved_at',
         'rejected_at',
-    ];
+        'bank_name'
+        ];
 
     public function doctorProfile(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

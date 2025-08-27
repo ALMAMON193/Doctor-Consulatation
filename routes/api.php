@@ -19,6 +19,7 @@ use App\Http\Controllers\API\WEB\Dashboard\Consultation\ConsultationApiControlle
 use App\Http\Controllers\API\WEB\Dashboard\Coupon\CouponController;
 use App\Http\Controllers\API\WEB\Dashboard\Doctor\DoctorApiController;
 use App\Http\Controllers\API\WEB\Dashboard\Patient\PatientApiController;
+use App\Http\Controllers\API\WEB\Dashboard\Specialization\SpecializationController;
 use App\Http\Controllers\API\WEB\Dashboard\WithDrawRequest\TransactionController;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -76,6 +77,12 @@ Route::prefix('admin')->middleware('admin')->group(function () {
     Route::get('withdraw-requests',         [TransactionController::class, 'withdrawRequests']);
     Route::post('withdraw-accept',           [TransactionController::class, 'acceptRequest']);
     Route::post('withdraw-reject',           [TransactionController::class, 'rejectRequest']);
+
+    // Specialization route
+    Route::get('/specializations', [SpecializationController::class, 'index']);
+    Route::post('/specializations', [SpecializationController::class, 'store']);
+    Route::post('/specializations/{specialization}', [SpecializationController::class, 'update']);
+    Route::delete('/specializations/{specialization}', [SpecializationController::class, 'destroy']);
 });
 
 /*

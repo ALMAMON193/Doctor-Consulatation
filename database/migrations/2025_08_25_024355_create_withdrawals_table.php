@@ -19,6 +19,7 @@
                 $table->decimal('amount', 10, 2);
                 $table->string('account_number')->nullable();
                 $table->string('account_name')->nullable();
+                $table->string('bank_name')->nullable();
                 $table->string('transaction_id')->nullable();
                 $table->enum('status', ['pending', 'success', 'cancelled'])->default('pending');
                 $table->text('remarks')->nullable();

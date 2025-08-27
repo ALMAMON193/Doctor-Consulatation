@@ -42,7 +42,6 @@ class ConsultationChatApiController extends Controller
                 'doctorProfile.user',
                 'patientMember.patient'
             ])->findOrFail($request->consultation_id);
-
             // Check consultation status
             if (!in_array($consultation->consultation_status, ['pending', 'monitoring'])) {
                 return response()->json([
@@ -50,18 +49,15 @@ class ConsultationChatApiController extends Controller
                     'message' => 'Consultation is not active.'
                 ], 403);
             }
-
             // Determine main patient and patient member
             $mainPatient = $consultation->patient ?? $consultation->patientMember?->patient;
             $patientMemberId = $consultation->patientMember?->id;
-
             if (!$mainPatient) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Main patient not found.'
                 ], 422);
             }
-
             $patientId = $mainPatient->id;
 
             // Validate patient member sender
@@ -92,7 +88,6 @@ class ConsultationChatApiController extends Controller
 
             // Handle file upload
             $filePath = $request->hasFile('file') ? $request->file('file')->store('messages', 'public') : null;
-
             // Create message
             $message = Message::create([
                 'consultation_id'    => $consultation->id,
@@ -103,10 +98,7 @@ class ConsultationChatApiController extends Controller
                 'content'            => $request->message,
                 'file'               => $filePath,
             ]);
-
-            // ✅ Message এর relation গুলো load করুন broadcasting এর আগে
             $message->load(['sender', 'receiver', 'patient', 'patientMember']);
-
             DB::commit();
 
             // ✅ Broadcast real time
