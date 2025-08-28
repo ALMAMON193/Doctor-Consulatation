@@ -17,6 +17,7 @@ class ConsultationController extends Controller
      */
     public function show($id)
     {
+        // get all colsultation
         $consultation = Consultation::with([
             'patient.user',
             'patientMember.patient.user',
@@ -70,17 +71,14 @@ class ConsultationController extends Controller
             if (!$consultation) {
                 return $this->sendError('Consultation not found', [], 404);
             }
-
             DB::transaction(function () use ($consultation) {
                 if ($consultation->doctor_id) {
                     throw new \Exception('This consultation has already been assigned.');
                 }
-
                 $doctor = auth()->user()->doctorProfile;
                 if (!$doctor) {
                     throw new \Exception('Authenticated user has no doctor profile.');
                 }
-
                 if (!$consultation->is_paid) {
                     throw new \Exception('Payment not completed. Cannot accept consultation.');
                 }

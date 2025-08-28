@@ -2,7 +2,7 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
-const token = '19|azwSYtgu8zEG79ZkIBImd5M21ikQvRUynKZmVdei00c6c2a4';
+const token = '4|oOoNBoGYyAPW292NPBUKy1EYpMxV0hOEuaTRKzgO4cc1749d';
 
 window.Echo = new Echo({
     broadcaster: 'reverb',

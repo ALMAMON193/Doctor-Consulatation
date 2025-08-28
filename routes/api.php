@@ -151,9 +151,6 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::get('consultation-details',              [ConsultationRecordApiController::class, 'index']);
     Route::delete('consultations/delete/{id}',      [ConsultationRecordApiController::class, 'destroy']);
 
-    // Ratings
-    Route::post('consultation-ratting',             [RatingApiController::class, 'store']);
-
     // Notifications
     Route::get('notifications',                     [PatientNotificationController::class, 'index']);
     Route::post('notifications/{id}/read',          [PatientNotificationController::class, 'markAsRead']);
@@ -163,6 +160,15 @@ Route::prefix('patient')->middleware(['patient', 'auth:sanctum'])->group(functio
     Route::post('medical-record/store',             [MedicalApiRecordController::class, 'storeMedicalRecord']);
     Route::post('medical-record/update/{id}',       [MedicalApiRecordController::class, 'updateMedicalRecord']);
     Route::delete('medical-record/delete/{id}',     [MedicalApiRecordController::class, 'destroyMedicalRecord']);
+});
+
+/*
+|------------------------------------------------------------------------
+  Ratting For Consultation
+|------------------------------------------------------------------------
+*/
+Route::prefix('consultation')->middleware(['auth:sanctum'])->group(function () {
+    Route::post('/ratting', [RatingApiController::class, 'store']);
 });
 
 /*

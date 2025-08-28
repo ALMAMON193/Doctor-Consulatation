@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 class Rating extends Model
 {
     protected $fillable = [
+        'doctor_id',
         'patient_id',
-        'doctor_profile_id',
         'patient_member_id',
+        'given_by_id',
+        'given_by_type',
         'rating',
-        'review',
+        'review'
     ];
 
     public function patient(): \Illuminate\Database\Eloquent\Relations\BelongsTo

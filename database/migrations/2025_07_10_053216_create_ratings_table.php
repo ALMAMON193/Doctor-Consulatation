@@ -13,20 +13,14 @@ return new class extends Migration
     {
         Schema::create('ratings', function (Blueprint $table) {
             $table->id();
-
-            $table->unsignedBigInteger('patient_id')->nullable();
-            $table->unsignedBigInteger('doctor_profile_id');
-            $table->unsignedBigInteger('patient_member_id')->nullable();
-
-            $table->tinyInteger('rating')->comment('1 to 5 stars');
+            $table->foreignIdFor(\App\Models\DoctorProfile::class)->nullable(); // Doctor being rated
+            $table->foreignIdFor(\App\Models\Patient::class)->nullable(); // Patient being rated
+            $table->foreignIdFor(\App\Models\PatientMember::class)->nullable(); // Family member
+            $table->unsignedBigInteger('given_by_id'); // User who gave rating
+            $table->enum('given_by_type',['patient','doctor']);
+            $table->tinyInteger('rating');
             $table->text('review')->nullable();
-
             $table->timestamps();
-
-            // Foreign Keys
-            $table->foreign('patient_id')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('doctor_profile_id')->references('id')->on('doctor_profiles')->onDelete('cascade');
-            $table->foreign('patient_member_id')->references('id')->on('patient_members')->onDelete('set null');
         });
     }
 
