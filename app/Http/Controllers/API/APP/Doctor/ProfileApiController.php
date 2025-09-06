@@ -231,10 +231,8 @@ class ProfileApiController extends Controller
 
                 // Delete old file if exists
                 Helper::fileDelete($doctor->video_path);
-
                 // Save relative path in DB (e.g. doctor/videos/abc.mp4)
                 $doctor->video_path = $newVideo;
-                $verificationReset = true;
             }
 
             $doctor->save();
