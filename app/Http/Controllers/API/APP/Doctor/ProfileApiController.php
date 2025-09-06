@@ -211,7 +211,6 @@ class ProfileApiController extends Controller
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
-
         DB::beginTransaction();
         try {
             $doctor = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
@@ -227,7 +226,7 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                $newVideo = Helper::fileUpload($request->file('video_path'), 'doctor/videos');
+                $newVideo = $request->file('video_path')->store('doctor/videos', 'public');
                 Helper::fileDelete($doctor->video_path);
                 $doctor->video_path = $newVideo;
                 $verificationReset = true;
@@ -256,7 +255,6 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Something went wrong'), [], 500);
         }
     }
-
     /**
      * Retrieve financial details for the authenticated doctor.
      *
