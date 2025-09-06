@@ -226,7 +226,7 @@ class ProfileApiController extends Controller
 
             if ($request->hasFile('video_path')) {
                 // Save the file in storage/app/public/doctor/videos
-                $newVideo = $request->file('video_path')->store('doctor/videos', 'public');
+                $newVideo = $request->file('video_path')->store('doctor/presentation-video', 'public');
                 Helper::fileDelete($doctor->video_path);
                 $doctor->video_path = $newVideo;
             }
