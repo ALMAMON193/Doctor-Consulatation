@@ -226,8 +226,13 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
+                // Save the file in storage/app/public/doctor/videos
                 $newVideo = $request->file('video_path')->store('doctor/videos', 'public');
+
+                // Delete old file if exists
                 Helper::fileDelete($doctor->video_path);
+
+                // Save relative path in DB (e.g. doctor/videos/abc.mp4)
                 $doctor->video_path = $newVideo;
                 $verificationReset = true;
             }
