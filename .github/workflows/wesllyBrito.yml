@@ -16,4 +16,4 @@ jobs:
         with:
           server: 31.97.86.127
           username: backend_ftp
-          password: "U1FvGfe0L7g42f6FGuLE"
+          password: ${{ secrets.FTP_PASSWORD }}
