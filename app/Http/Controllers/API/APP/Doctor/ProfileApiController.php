@@ -220,19 +220,14 @@ class ProfileApiController extends Controller
             if ($doctor->crm !== $request->crm || $doctor->uf !== $request->uf) {
                 $verificationReset = true;
             }
-
             $doctor->crm = $request->crm;
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                // Save the file in storage/app/public/doctor/videos
                 $newVideo = $request->file('video_path')->store('doctor/presentation-video', 'public');
                 Helper::fileDelete($doctor->video_path);
                 $doctor->video_path = $newVideo;
             }
-
-            $doctor->save();
-
             // ✅ specializations update
             if ($request->filled('specializations')) {
                 $doctor->specializations()->sync($request->specializations);
@@ -245,11 +240,13 @@ class ProfileApiController extends Controller
                 $doctor->verification_rejection_reason = null;
                 $doctor->save();
             }
-            return $this->sendResponse([], __('Medical information updated successfully.'));
-        } catch (Exception $e) {
-            return $this->sendError(__('Something went wrong'), [], 500);
+            $doctor->save();
+            return $this->sendResponse($doctor, __('Medical data updated successfully.'));
+        } catch (\Exception $e) {
+            return $this->sendError(__('Failed to update medical data.'), ['error' => $e->getMessage()], 500);
         }
     }
+
     /**
      * Retrieve financial details for the authenticated doctor.
      *
