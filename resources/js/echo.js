@@ -2,7 +2,7 @@ import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
-const token = '4|oOoNBoGYyAPW292NPBUKy1EYpMxV0hOEuaTRKzgO4cc1749d';
+const token = '3|p8pLR6UjOyzc5kIsav2mVFCu2oO50PibvV9YauK5339152ce';
 
 window.Echo = new Echo({
     broadcaster: 'reverb',
@@ -19,9 +19,9 @@ window.Echo = new Echo({
         }
     }
 });
-let consultationId = 2;
+let consultationId = 1;
 // ✅ Listen to messages for a consultation
-window.Echo.private(`consultation.${consultationId}`)
+window.Echo.channel(`consultation.${consultationId}`)
   .listen('.message.sent', (e) => {
       console.log("📩 New Message:", e.message);
   });

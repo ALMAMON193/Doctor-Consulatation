@@ -23,7 +23,7 @@ class UserApiController extends Controller
     /**
      * Store personal and account information for the authenticated doctor.
      *
-     * @param \App\Http\Requests\APP\Doctor\CreateProfileRequest $request
+     * @param CreateProfileRequest $request
      * @return JsonResponse
      * @throws Throwable
      */

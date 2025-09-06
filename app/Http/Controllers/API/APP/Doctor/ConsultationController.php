@@ -82,7 +82,6 @@ class ConsultationController extends Controller
                 if (!$consultation->is_paid) {
                     throw new \Exception('Payment not completed. Cannot accept consultation.');
                 }
-
                 $consultation->doctor_id = $doctor->id;
                 $consultation->consultation_status = 'monitoring';
                 $consultation->assign_application = $doctor->user?->name ?? 'Unknown Doctor';
@@ -119,7 +118,6 @@ class ConsultationController extends Controller
                 'consultation_id' => $consultation->id ?? null,
                 'error' => $e->getMessage(),
             ]);
-
             return $this->sendError($e->getMessage() ?? 'Something went wrong');
         }
     }

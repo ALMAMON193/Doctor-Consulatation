@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Http\Resources\APP\Chatting\ChatMessageResource;
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -21,9 +22,9 @@ class MessageSent implements ShouldBroadcast
         $this->consultationId = $message->consultation_id;
     }
 
-     public function broadcastOn(): PrivateChannel
+     public function broadcastOn(): Channel
      {
-          return new PrivateChannel("consultation.{$this->consultationId}");
+          return new Channel("consultation.{$this->consultationId}");
      }
 
     public function broadcastAs(): string

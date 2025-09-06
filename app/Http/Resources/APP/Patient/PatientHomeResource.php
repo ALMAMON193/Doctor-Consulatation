@@ -44,7 +44,12 @@ class PatientHomeResource extends JsonResource
             'your_consultation'     => $this->getUserConsultationCount(),
             'complete_registration' => [
                 'percentage'     => $percent,
-                'patient_photo'  => $patient_photo,
+                'patient_name'   => $patient->user->name,
+                'profile_photo' => $this->patient->profile_photo
+                    ? asset('storage/' . $this->patient->profile_photo)
+                    : (optional($this->patient->user)->profile_photo
+                        ? asset('storage/' . $this->patient->user->profile_photo)
+                        : ''),
                 'next_step'      => $nextStep,
                 'complete'       => $complete,
             ],

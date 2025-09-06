@@ -171,10 +171,12 @@ class ProfileApiController extends Controller
     public function medicalDetails(): JsonResponse
     {
         $user = auth('sanctum')->user();
-        if (!$user) {
+
+        if (!$user || !$user->doctorProfile) {
             return $this->sendError(__('Only doctors can view this information'), [], 403);
         }
 
+        // Eager load doctorProfile + specializations
         $user->loadMissing(['doctorProfile.specializations']);
 
         $doctor = $user->doctorProfile;
@@ -183,8 +185,8 @@ class ProfileApiController extends Controller
             'medical_information' => [
                 'crm' => $doctor->crm ?? '',
                 'uf'  => $doctor->uf ?? '',
-                'specializations' => $doctor->specializations->pluck('name'), // returns ["Cardiology", "Neurology", ...]
-                'presentation_video' => filled($doctor->video_path)
+                'specializations' => $doctor->specializations->pluck('name')->toArray(),
+                'presentation_video' => $doctor->video_path
                     ? asset('storage/' . $doctor->video_path)
                     : '',
                 'verification_status' => $doctor->verification_status ?? 'pending',
@@ -214,7 +216,13 @@ class ProfileApiController extends Controller
         try {
             $doctor = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
 
+            $verificationReset = false;
+
             // update doctor profile fields
+            if ($doctor->crm !== $request->crm || $doctor->uf !== $request->uf) {
+                $verificationReset = true;
+            }
+
             $doctor->crm = $request->crm;
             $doctor->uf  = $request->uf;
 
@@ -222,19 +230,25 @@ class ProfileApiController extends Controller
                 $newVideo = Helper::fileUpload($request->file('video_path'), 'doctor/videos');
                 Helper::fileDelete($doctor->video_path);
                 $doctor->video_path = $newVideo;
+                $verificationReset = true;
             }
 
             $doctor->save();
 
             // ✅ specializations update
-            if ($request->filled('specialization')) {
-                $doctor->specializations()->sync($request->specialization);
+            if ($request->filled('specializations')) {
+                $doctor->specializations()->sync($request->specializations);
             } else {
                 $doctor->specializations()->sync([]);
             }
-            // reset verification if anything changed
-            $doctor->verification_status = 'pending';
-            $doctor->save();
+
+            // reset verification ONLY if critical data changed
+            if ($verificationReset) {
+                $doctor->verification_status = 'pending';
+                $doctor->verification_rejection_reason = null;
+                $doctor->save();
+            }
+
             DB::commit();
             return $this->sendResponse([], __('Medical information updated successfully.'));
         } catch (Exception $e) {
@@ -242,7 +256,6 @@ class ProfileApiController extends Controller
             return $this->sendError(__('Something went wrong'), [], 500);
         }
     }
-
 
     /**
      * Retrieve financial details for the authenticated doctor.
