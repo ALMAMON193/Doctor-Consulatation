@@ -211,12 +211,12 @@ class ProfileApiController extends Controller
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
-
         try {
             $doctor = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
+
             $verificationReset = false;
 
-            // check if crm or uf changed
+            // update doctor profile fields
             if ($doctor->crm !== $request->crm || $doctor->uf !== $request->uf) {
                 $verificationReset = true;
             }
@@ -225,53 +225,31 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                $file = $request->file('video_path');
-
-                // Log file info
-                \Log::info('Video upload info:', [
-                    'original_name' => $file->getClientOriginalName(),
-                    'size_bytes' => $file->getSize(),
-                    'mime_type' => $file->getClientMimeType(),
-                    'temp_path' => $file->getPathname()
-                ]);
-
-                // Store file
-                $newVideo = $file->store('doctor/videos', 'public');
-
-                \Log::info('Stored video path:', ['path' => $newVideo]);
-
-                // Delete old video if exists
+                // Save the file in storage/app/public/doctor/videos
+                $newVideo = $request->file('video_path')->store('doctor/videos', 'public');
                 Helper::fileDelete($doctor->video_path);
-
-                // Update DB
                 $doctor->video_path = $newVideo;
-            } else {
-                \Log::info('No video uploaded.');
             }
 
             $doctor->save();
 
-            // Sync specializations
+            // ✅ specializations update
             if ($request->filled('specializations')) {
                 $doctor->specializations()->sync($request->specializations);
             } else {
                 $doctor->specializations()->sync([]);
             }
-
-            // Reset verification if critical data changed
+            // reset verification ONLY if critical data changed
             if ($verificationReset) {
                 $doctor->verification_status = 'pending';
                 $doctor->verification_rejection_reason = null;
                 $doctor->save();
             }
-
             return $this->sendResponse([], __('Medical information updated successfully.'));
         } catch (Exception $e) {
-            \Log::error('Medical data update failed:', ['error' => $e->getMessage()]);
             return $this->sendError(__('Something went wrong'), [], 500);
         }
     }
-
     /**
      * Retrieve financial details for the authenticated doctor.
      *
