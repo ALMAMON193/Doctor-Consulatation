@@ -211,7 +211,6 @@ class ProfileApiController extends Controller
         if (!$user || $user->user_type !== 'doctor') {
             return $this->sendError(__('Only doctors can edit their profile'), [], 403);
         }
-        DB::beginTransaction();
         try {
             $doctor = DoctorProfile::firstOrCreate(['user_id' => $user->id]);
 
@@ -228,10 +227,7 @@ class ProfileApiController extends Controller
             if ($request->hasFile('video_path')) {
                 // Save the file in storage/app/public/doctor/videos
                 $newVideo = $request->file('video_path')->store('doctor/videos', 'public');
-
-                // Delete old file if exists
                 Helper::fileDelete($doctor->video_path);
-                // Save relative path in DB (e.g. doctor/videos/abc.mp4)
                 $doctor->video_path = $newVideo;
             }
 
@@ -243,18 +239,14 @@ class ProfileApiController extends Controller
             } else {
                 $doctor->specializations()->sync([]);
             }
-
             // reset verification ONLY if critical data changed
             if ($verificationReset) {
                 $doctor->verification_status = 'pending';
                 $doctor->verification_rejection_reason = null;
                 $doctor->save();
             }
-
-            DB::commit();
             return $this->sendResponse([], __('Medical information updated successfully.'));
         } catch (Exception $e) {
-            DB::rollBack();
             return $this->sendError(__('Something went wrong'), [], 500);
         }
     }
