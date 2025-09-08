@@ -224,9 +224,12 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                $newVideo = $request->file('video_path')->store('doctor/presentation-video', 'public');
+                $path = $request->file('video_path')->store('doctor/presentation-video', 'public');
+                if (!$path) {
+                    return $this->sendError('Video upload failed.');
+                }
                 Helper::fileDelete($doctor->video_path);
-                $doctor->video_path = $newVideo;
+                $doctor->video_path = $path;
             }
             // ✅ specializations update
             if ($request->filled('specializations')) {

@@ -63,7 +63,7 @@ class ConsultationController extends Controller
     /**
      * Accept a consultation
      */
-    public function accept($id)
+    public function accept($id): \Illuminate\Http\JsonResponse
     {
         try {
             $consultation = Consultation::with(['payment', 'doctorProfile.user'])->find($id);
