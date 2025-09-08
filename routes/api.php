@@ -1,5 +1,6 @@
 <?php
 
+use App\Helpers\Helper;
 use App\Http\Controllers\API\APP\Doctor\ConsultationController as DoctorConsultationController;
 use App\Http\Controllers\API\APP\Doctor\NotificationController as DoctorNotificationController;
 use App\Http\Controllers\API\APP\Doctor\PatientHistoryController;
@@ -197,3 +198,5 @@ Route::get('stripe/publish-key', [ConsultationBookingController::class, 'publish
 |--------------------------------------------------------------------------
 */
 Route::get('specializations', [DoctorUserApiController::class, 'specializations']);
+
+

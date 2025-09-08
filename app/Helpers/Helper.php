@@ -9,29 +9,63 @@ use Illuminate\Support\Str;
 
 class Helper
 {
-
-    //! File or Image Upload
-    public static function fileUpload($file, string $folder): ?string
+    /**
+     * File upload
+     */
+    public static function uploadFile($folderName, $file, $fileName = null, $disk = 'public'): string
     {
-        if (!$file || !$file->isValid()) return null;
+        $filePath = 'uploads/'.$folderName.'/'.$fileName;
 
-        $originalName = $file->getClientOriginalName();
-        $name = Str::uuid() . '-' . now()->format('Y-m-d-H-i-s');
-        $path = $file->storeAs($folder, $name . '-' . $originalName, ['disk' => 'public']);
+        if ($disk === 's3') {
+            Storage::disk($disk)->put(
+                $filePath,
+                file_get_contents($file),
+                [
+                    'visibility' => 'public',
+                    'ContentType' => $file->getMimeType(),
+                    'ContentDisposition' => 'inline',
+                ]
+            );
+        } else {
+            Storage::disk($disk)->putFileAs(
+                'uploads/'.$folderName,
+                $file,
+                $fileName
+            );
+        }
 
-        return $path;
+        return $filePath;
     }
 
-
-    //! File or Image Delete
-    public static function fileDelete(?string $path): void
+    /**
+     *  remove file
+     */
+    public static function deleteFile($filePath, $disk = 'public'): bool
     {
-        if (!$path) {
-            return; // nothing to delete
+        if (Storage::disk($disk)->exists($filePath)) {
+            Storage::disk($disk)->delete($filePath);
+            return true;
         }
-        // "public" must match the disk used in fileUpload()
-        if (Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
+        return false;
     }
+
+    /**
+     * generate temp or direct url
+     */
+    public static function generateTempURL($path, $disk = 'public'): ?string
+    {
+        if (!$path || !Storage::disk($disk)->exists($path)) {
+            return null;
+        }
+
+        if (method_exists(Storage::disk($disk), 'temporaryUrl')) {
+            return Storage::disk($disk)->temporaryUrl(
+                $path,
+                now()->addMinutes(30),
+            );
+        }
+
+        return Storage::disk($disk)->url($path);
+    }
+
 }

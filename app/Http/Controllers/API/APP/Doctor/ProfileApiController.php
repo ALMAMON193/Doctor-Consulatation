@@ -18,6 +18,7 @@ use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 
@@ -50,9 +51,9 @@ class ProfileApiController extends Controller
                     'user_name'      => $user->name,
                     'email'          => $user->email,
                     'phone_number'   => $user->phone_number ?? '',
-                    'profile_picture' => ($user->doctorProfile && !empty($user->doctorProfile->profile_picture) && $user->doctorProfile->profile_picture !== 'null')
-                        ? asset('storage/' . $user->doctorProfile->profile_picture)
-                        : '',
+                    'profile_picture'=> ($user->doctorProfile && !empty($user->doctorProfile->profile_picture) && $user->doctorProfile->profile_picture !== 'null')
+                        ? Helper::generateTempURL($user->doctorProfile->profile_picture, config('app.file_system'))
+                        : null,
                 ],
                 'personal_information' => [
                     'date_of_birth' => optional($user->personalDetail)->date_of_birth,
@@ -128,12 +129,24 @@ class ProfileApiController extends Controller
 
             // Handle profile picture upload for doctor_profile
             if ($request->hasFile('profile_picture')) {
-                $newAvatar = Helper::fileUpload($request->file('profile_picture'), 'doctor/profile_picture');
-                if ($doctorProfile->profile_picture) {
-                    Helper::fileDelete($doctorProfile->profile_picture);
+                $file = $request->file('profile_picture');
+
+                // Delete old profile picture if exists
+                if (!empty($doctorProfile->profile_picture)) {
+                    Helper::deleteFile($doctorProfile->profile_picture, config('app.file_system'));
                 }
-                $doctorProfile->profile_picture = $newAvatar;
+
+                // Generate unique file name
+                $fileName = time() . Str::random(10) . Str::uuid() . '_' . date('Ymd_His') . '.' . $file->getClientOriginalExtension();
+
+                // Upload file and get stored path/url
+                $uploadedPath = Helper::uploadFile('doctor/profile_picture', $file, $fileName, config('app.file_system'));
+
+                // Save uploaded file path to profile
+                $doctorProfile->profile_picture = $uploadedPath;
             }
+
+
 
             $doctorProfile->save();
 
@@ -224,11 +237,13 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                $path = $request->file('video_path')->store('doctor/presentation-video', 'public');
+                $path = Helper::fileUpload($request->file('video_path'), 'doctor/presentation-video');
+
                 if (!$path) {
                     return $this->sendError('Video upload failed.');
                 }
-                Helper::fileDelete($doctor->video_path);
+
+                Helper::fileDelete($doctor->video_path); // delete old video if exists
                 $doctor->video_path = $path;
             }
 
