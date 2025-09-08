@@ -224,22 +224,12 @@ class ProfileApiController extends Controller
             $doctor->uf  = $request->uf;
 
             if ($request->hasFile('video_path')) {
-                try {
-                    $path = $request->file('video_path')->store('doctor/presentation-video', 'public');
-                    if (!$path) {
-                        Log::error('Video upload failed: store() returned false.');
-                        return $this->sendError('Video upload failed.');
-                    }
-                    Helper::fileDelete($doctor->video_path);
-                    $doctor->video_path = $path;
-                } catch (\Exception $e) {
-                    Log::error('Video upload exception: ' . $e->getMessage(), [
-                        'file' => $request->file('video_path')->getClientOriginalName(),
-                        'size' => $request->file('video_path')->getSize(),
-                        'mime' => $request->file('video_path')->getMimeType(),
-                    ]);
-                    return $this->sendError('Video upload failed: ' . $e->getMessage());
+                $path = $request->file('video_path')->store('doctor/presentation-video', 'public');
+                if (!$path) {
+                    return $this->sendError('Video upload failed.');
                 }
+                Helper::fileDelete($doctor->video_path);
+                $doctor->video_path = $path;
             }
 
             // ✅ specializations update
